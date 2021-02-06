@@ -445,10 +445,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 new AlertDialog.Builder(MainActivity.this)
                         .setTitle("Current language: " + Speech.getInstance().getSpeechToTextLanguage())
                         .setItems(items, (dialogInterface, i) -> {
-                            Locale locale;
-
-                            locale = Locale.forLanguageTag(supportedLanguages.get(i));
-
+                            Locale locale = Locale.forLanguageTag(supportedLanguages.get(i));
                             Speech.getInstance().setLocale(locale);
                             Toast.makeText(MainActivity.this, "Selected: " + items[i], Toast.LENGTH_LONG).show();
                         })
