@@ -217,7 +217,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                     test = false;
                     onSpeechToTextExec();
                 }
-//                ThreadSleep.sleep(10);
             }
         } else {
             for (int i = 0; i < 3; i++) {
@@ -231,7 +230,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             String speech = SpeechRecognizerInput.get(i);
             if (speech.equals("")) {
                 SpeakPromptly("Not a question.");
-//                ThreadSleep.sleep(2);
             } else {
                 String url = createUrl(get_url, 0, sub_code, speech);
                 sendGetRequest(url);
@@ -239,13 +237,13 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 if (que_ans[1].equals("")) {
                     SpeakPromptly((n_que_answered + 1) + " Answer not found.");
                     n_que_answered += 1;
-//                    ThreadSleep.sleep(2);
                 }
             }
         }
     }
 
     private static void startAnsweringTheQuestions() {
+        SpeakPromptly("Answering the questions now.");
         for (int i = 0; i < n_que_answered; i++) {
             String[] que_ans = preferencesHandler.getQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
             Log.e("startAnswering", Arrays.toString(que_ans));
@@ -254,7 +252,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 preferencesHandler.removeQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
             } else {
                 SpeakPromptly("Negative " + (i + 1));
-//                ThreadSleep.sleep(2);
             }
             n_que_answer_spoken += 1;
         }
@@ -353,18 +350,15 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                     int n = Integer.parseInt(temp_txt);
                     if (n > 1 & n < 25) {
                         n_que = n;
+                        Log.e("TTS", "n_que=" + n_que);
                     } else {
                         Log.e("TTS", "Going with 20 questions.");
-                        textView.setText("Going with 20 questions.");
                     }
                 } else {
-                    textView.setText("Going with 20 questions.");
                     Log.e("TTS", "Going with 20 questions.");
-
                 }
                 SpeechToText();
                 processQuestionToAnswer();
-                SpeakPromptly("Answering the questions now.");
                 startAnsweringTheQuestions();
             }
         }.start();
@@ -380,12 +374,12 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                     test = false;
                     if (getSpeechInput()) {
                         ThreadSleep.sleep(20);
-                        n_que_index += 1;
-                        break;
-//                        if (!SpeechRecognizerInput.get(n_que_index).equals("") & SpeechRecognizerInput.get(n_que_index).length() > 10) {
-//                            n_que_index += 1;
-//                            break;
-//                        }
+//                        n_que_index += 1;
+//                        break;
+                        if (!SpeechRecognizerInput.get(n_que_index).equals("") & SpeechRecognizerInput.get(n_que_index).length() > 10) {
+                            n_que_index += 1;
+                            break;
+                        }
                     }
                 }
             }
