@@ -22,11 +22,11 @@ public class Utils extends AppCompatActivity {
     public static Context context;
 
 
-    public AlertDialog.Builder alertDialogBuilder() {
-        return new AlertDialog.Builder(this);
+    public static AlertDialog.Builder alertDialogBuilder() {
+        return new AlertDialog.Builder(context);
     }
 
-    public boolean requestAudioPermission() {
+    public static boolean requestAudioPermission() {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             return true;
         } else {
@@ -35,7 +35,7 @@ public class Utils extends AppCompatActivity {
         return false;
     }
 
-    public RequestQueue Queue() {
+    public static RequestQueue Queue() {
         return Volley.newRequestQueue(context);
     }
 

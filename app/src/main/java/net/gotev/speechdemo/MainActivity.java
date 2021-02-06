@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
     private static final String get_url = "https://0yh5imhg3m.execute-api.ap-south-1.amazonaws.com/prod";
+    private static final double SPEECHRATE = 0.8;
 
     static TextView textViewCountDown;
     static TextView textView;
@@ -81,6 +82,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static boolean mIslistening = false;
     private static PreferencesHandler preferencesHandler;
     private static Utils utils;
+    private static TextToSpeech TTS;
     private Button sub_code_btn;
     private Button speak;
     private TextView text;
@@ -107,7 +109,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         if (Speech.getInstance().isListening()) {
             Speech.getInstance().stopListening();
         } else {
-            if (utils.requestAudioPermission()) {
+            if (Utils.requestAudioPermission()) {
                 Log.e("STT", "doing STT for ProcessQA.");
                 onRecordAudioPermissionGranted();
             }
@@ -139,7 +141,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             }
         };
 
-        AlertDialog.Builder builder = utils.alertDialogBuilder();
+        AlertDialog.Builder builder = Utils.alertDialogBuilder();
         builder.setMessage(R.string.speech_not_available)
                 .setCancelable(false)
                 .setPositiveButton(R.string.yes, dialogClickListener)
@@ -148,7 +150,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     }
 
     private static void showEnableGoogleVoiceTyping() {
-        AlertDialog.Builder builder = utils.alertDialogBuilder();
+        AlertDialog.Builder builder = Utils.alertDialogBuilder();
         builder.setMessage(R.string.enable_google_voice_typing)
                 .setCancelable(false)
                 .setPositiveButton(R.string.yes, (dialogInterface, i) -> {
@@ -254,7 +256,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     }
 
     private static synchronized void sendGetRequest(String url) {
-        RequestQueue queue = utils.Queue();
+        RequestQueue queue = Utils.Queue();
 
         StringRequest stringRequest = new StringRequest(Request.Method.GET, url, response -> {
             Log.e("sendGetRequest", "Volley Request succeed:" + response);
@@ -316,27 +318,10 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             words += s_arr[idx_space - 1] + " ";
             if (idx_space % 5 == 0 || idx_space == s_arr.length) {
                 for (int i = 0; i < 3; ) {
-                    if (!isSpeaking[0]) {
+                    if (!TTS.isSpeaking()) {
                         i += 1;
-                        Speech.getInstance().setTextToSpeechRate((float) 0.8).say(words, new TextToSpeechCallback() {
-                            @Override
-                            public void onStart() {
-                                Logger.error(LOG_TAG, "TTS onStart");
-                                isSpeaking[0] = true;
-                            }
-
-                            @Override
-                            public void onCompleted() {
-                                Logger.error(LOG_TAG, "TTS onCompleted");
-                                isSpeaking[0] = false;
-                            }
-
-                            @Override
-                            public void onError() {
-                                Logger.error(LOG_TAG, "TTS onError");
-                                isSpeaking[0] = false;
-                            }
-                        });
+                        ThreadSleep.sleep(1);
+                        TTS.speak(words, TextToSpeech.QUEUE_FLUSH, null);
                     }
                 }
                 ThreadSleep.sleep(2);
@@ -351,7 +336,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        utils = new Utils();
         Utils.context = MainActivity.this;
         timePickerFragment = new TimePickerFragment();
         preferencesHandler = new PreferencesHandler();
@@ -381,6 +365,21 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 ContextCompat.getColor(this, android.R.color.holo_red_dark)
         };
         progress.setColors(colors);
+
+        //################## TTS speaking use the same at taking the time of picture
+        TTS = new TextToSpeech(this, status -> {
+            if (status == TextToSpeech.SUCCESS) {
+                int result = TTS.setLanguage(Locale.ENGLISH);
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    Log.e("TTS", "English Language not downloaded.");
+                } else {
+                    Log.e("TTS", "Initialized TTS Engine.");
+                }
+            } else {
+                Log.e("TTS", "Initialization failed");
+            }
+        });
+        TTS.setSpeechRate((float) SPEECHRATE);  // SpeechRate 0.0 < x < 2.0
 
         n_que_layout = findViewById(R.id.n_que);
         editText = findViewById(R.id.editText);
