@@ -1,6 +1,7 @@
 package net.gotev.speechdemo;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.Dialog;
 import android.app.TimePickerDialog;
 import android.content.DialogInterface;
@@ -52,6 +53,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
@@ -64,8 +66,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
     private static final String get_url = "https://0yh5imhg3m.execute-api.ap-south-1.amazonaws.com/prod";
     private static final double SPEECHRATE = 0.8;  // SpeechRate 0.0 < x < 2.0
-    private final Integer RECOGNIZERINTENTREQUESTCODE = 10;
-
+    private static final Integer RECOGNIZERINTENTREQUESTCODE = 10;
     static TextView textViewCountDown;
     static TextView textView;
     static int n_que_index = 0;
@@ -247,6 +248,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static void startAnsweringTheQuestions() {
         for (int i = 0; i < n_que_answered; i++) {
             String[] que_ans = preferencesHandler.getQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
+            Log.e("startAnswering", Arrays.toString(que_ans));
             if (!que_ans[0].equals("") & !que_ans[1].equals("")) {
                 SpeakAnswer(que_ans[0] + " Answering now " + que_ans[1]);
                 preferencesHandler.removeQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
@@ -332,6 +334,82 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         gc();
     }
 
+    private static synchronized void startTimerWithGoogleWindow(long ms) {
+        timePickerFragment.timerRunning = true;
+        timePickerFragment.countDownTimer = new CountDownTimer(ms, 1) {
+
+            @Override
+            public void onTick(long millisUntilFinished) {
+                timePickerFragment.updateCountDownText(millisUntilFinished);
+            }
+
+            @RequiresApi(api = Build.VERSION_CODES.O)
+            @SuppressLint("SetTextI18n")
+            @Override
+            public void onFinish() {
+                timePickerFragment.timerRunning = false;
+                String temp_txt = n_que_layout.getText().toString();
+                if (!temp_txt.equals("") & temp_txt.matches("[0-9]+")) {
+                    int n = Integer.parseInt(temp_txt);
+                    if (n > 1 & n < 25) {
+                        n_que = n;
+                    } else {
+                        Log.e("TTS", "Going with 20 questions.");
+                        textView.setText("Going with 20 questions.");
+                    }
+                } else {
+                    textView.setText("Going with 20 questions.");
+                    Log.e("TTS", "Going with 20 questions.");
+
+                }
+                SpeechToText();
+                processQuestionToAnswer();
+                SpeakPromptly("Answering the questions now.");
+                startAnsweringTheQuestions();
+            }
+        }.start();
+        timePickerFragment.timerRunning = true;
+    }
+
+    private static void SpeechToText() {
+        sub_code = editText.getText().toString().toUpperCase();
+        if (sub_code.length() > 3) {
+            for (n_que_index = 0; n_que_index < n_que; ) {
+                for (int j = 0; j < 3; j++) {
+                    SpeakPromptly("r" + (n_que_index + 1));
+                    test = false;
+                    if (getSpeechInput()) {
+                        ThreadSleep.sleep(20);
+                        n_que_index += 1;
+                        break;
+//                        if (!SpeechRecognizerInput.get(n_que_index).equals("") & SpeechRecognizerInput.get(n_que_index).length() > 10) {
+//                            n_que_index += 1;
+//                            break;
+//                        }
+                    }
+                }
+            }
+        } else {
+            for (int i = 0; i < 3; i++) {
+                SpeakPromptly("Not a valid subject code " + sub_code);
+            }
+        }
+    }
+
+    @SuppressLint({"QueryPermissionsNeeded", "SetTextI18n"})
+    public static boolean getSpeechInput() {
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+        if (Utils.ResolveRecognizerIntent(intent) != null) {
+            Utils.StartRecognizerActivityForResult((Activity) Utils.context, intent, RECOGNIZERINTENTREQUESTCODE); //RECOGNIZERINTENTREQUESTCODE
+            return true;
+        } else {
+            textView.setText("Your device don't support speech input");
+            return false;
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -342,7 +420,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         preferencesHandler = new PreferencesHandler();
         Speech.init(this, getPackageName(), mTttsInitListener);
 
-        n_que_layout = findViewById(R.id.n_que);
+        n_que_layout = findViewById(R.id.n_que_layout);
         editText = findViewById(R.id.editText);
         textView = findViewById(R.id.textView);
         textViewCountDown = findViewById(R.id.textViewCountDown);
@@ -403,101 +481,24 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             String url = createUrl(get_url, 1, "KCE051", "As people have said, calling the Toast initiation within onResponse() works.");
             sendGetRequest(url);
             String[] que_ans = preferencesHandler.getQueAnsFromPreferences("question" + 1, "answer" + 1);
-            editText.setText(que_ans[1]);
+            textView.setText(que_ans[1]);
             startAnsweringTheQuestions();
         });
-    }
-
-
-//    private synchronized void startTimer(long ms) {
-//        timerRunning = true;
-//        countDownTimer = new CountDownTimer(ms, 1) {
-//
-//            @Override
-//            public void onTick(long millisUntilFinished) {
-//                updateCountDownText(millisUntilFinished);
-//            }
-//
-//            @RequiresApi(api = Build.VERSION_CODES.O)
-//            @SuppressLint("SetTextI18n")
-//            @Override
-//            public void onFinish() {
-//                timerRunning = false;
-//                String temp_txt = n_que_layout.getText().toString();
-//                if (!temp_txt.equals("") & temp_txt.matches("[0-9]+")) {
-//                    int n = Integer.parseInt(temp_txt);
-//                    if (n > 1 & n < 25) {
-//                        n_que = n;
-//                    } else {
-//                        textView.setText("Going with 20 questions.");
-//                    }
-//                } else {
-//                    textView.setText("Going with 20 questions.");
-//                }
-//                SpeechToText();
-//                processQuestionToAnswer();
-//                TTS.speak("Answering the questions now.", TextToSpeech.QUEUE_FLUSH, null);
-//                ThreadSleep.sleep(2);
-//                startAnsweringTheQuestions();
-//            }
-//        }.start();
-//        timerRunning = true;
-//    }
-
-    private void SpeechToText() {
-        sub_code = editText.getText().toString().toUpperCase();
-        if (sub_code.length() > 3) {
-            for (n_que_index = 0; n_que_index < n_que; ) {
-                for (int j = 0; j < 3; j++) {
-                    TTS.speak("recognition for " + (n_que_index + 1) + " question", TextToSpeech.QUEUE_FLUSH, null);
-                    ThreadSleep.sleep(2);
-                    test = false;
-                    if (getSpeechInput()) {
-                        ThreadSleep.sleep(20);
-                        n_que_index += 1;
-                        break;
-//                        if (!SpeechRecognizerInput.get(n_que_index).equals("") & SpeechRecognizerInput.get(n_que_index).length() > 10) {
-//                            n_que_index += 1;
-//                            break;
-//                        }
-                    }
-                }
-            }
-        } else {
-            for (int i = 0; i < 3; i++) {
-                TTS.speak("Not a valid subject code " + sub_code, TextToSpeech.QUEUE_FLUSH, null);
-                ThreadSleep.sleep(2);
-            }
-        }
-    }
-    @SuppressLint("QueryPermissionsNeeded")
-    public boolean getSpeechInput() {
-        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        if (intent.resolveActivity(getPackageManager()) != null) {
-            startActivityForResult(intent, RECOGNIZERINTENTREQUESTCODE); //RECOGNIZERINTENTREQUESTCODE
-            return true;
-        } else {
-            Toast.makeText(this, "Your device don't support speech input", Toast.LENGTH_SHORT).show();
-            return false;
-        }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == RECOGNIZERINTENTREQUESTCODE) {  //RECOGNIZERINTENTREQUESTCODE
+        if (requestCode == RECOGNIZERINTENTREQUESTCODE) {
             if (resultCode == RESULT_OK && data != null) {
                 ArrayList<String> result = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
                 SpeechRecognizerInput.add(result.get(0).toUpperCase());
 
                 if (test) {
                     if (SpeechRecognizerInput.get((SpeechRecognizerInput.size() - 1)).equals("")) {
-                        TTS.speak("Not able to hear you.", TextToSpeech.QUEUE_FLUSH, null);
-                        ThreadSleep.sleep(2);
+                        SpeakPromptly("Not able to hear you.");
                     } else {
-                        editText.setText(SpeechRecognizerInput.get((SpeechRecognizerInput.size() - 1)));
+                        textView.setText(SpeechRecognizerInput.get((SpeechRecognizerInput.size() - 1)));
                     }
                     SpeechRecognizerInput.set((SpeechRecognizerInput.size() - 1), "");
                 }
@@ -653,7 +654,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         if (timePickerFragment.timerRunning) {
             timePickerFragment.endTimeInMillis = savedInstanceState.getLong("endTime");
             timePickerFragment.timeLeftInMillis = timePickerFragment.endTimeInMillis - System.currentTimeMillis();
-            startTimer(timePickerFragment.timeLeftInMillis);
+            startTimerWithGoogleWindow(timePickerFragment.timeLeftInMillis);
         }
     }
 
@@ -696,6 +697,28 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         backgroundHandler = new Handler(backgroundThread.getLooper());
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @SuppressLint("NonConstantResourceId")
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.supportedSTTLanguages:
+                onSetSpeechToTextLanguage();
+                return true;
+
+            case R.id.supportedTTSLanguages:
+                onSetTextToSpeechVoice();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
 
     public static class TimePickerFragment extends DialogFragment {
         long beginTimerMillis;
@@ -723,7 +746,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
                 updateTimeText(calender);
                 beginTimerMillis = calender.getTimeInMillis() - System.currentTimeMillis();
-                startTimer(beginTimerMillis);
+                startTimerWithGoogleWindow(beginTimerMillis);
                 updateCountDownText(beginTimerMillis);
             }, hour, minute, DateFormat.is24HourFormat(getActivity()));
         }
@@ -751,30 +774,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             }
             idx_ms = 0;
             textView.setText("Quanification cancelled.");
-        }
-    }
-
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return true;
-    }
-
-    @SuppressLint("NonConstantResourceId")
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.supportedSTTLanguages:
-                onSetSpeechToTextLanguage();
-                return true;
-
-            case R.id.supportedTTSLanguages:
-                onSetTextToSpeechVoice();
-                return true;
-
-            default:
-                return super.onOptionsItemSelected(item);
         }
     }
 

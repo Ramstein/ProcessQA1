@@ -5,7 +5,9 @@ package net.gotev.speechdemo;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 
 import androidx.appcompat.app.AlertDialog;
@@ -37,6 +39,15 @@ public class Utils extends AppCompatActivity {
 
     public static RequestQueue Queue() {
         return Volley.newRequestQueue(context);
+    }
+
+    @SuppressLint("QueryPermissionsNeeded")
+    public static ComponentName ResolveRecognizerIntent(Intent intent) {
+        return intent.resolveActivity(context.getPackageManager());
+    }
+
+    public static void StartRecognizerActivityForResult(Activity activity, Intent intent, Integer RECOGNIZERINTENTREQUESTCODE) {
+        activity.startActivityForResult(intent, RECOGNIZERINTENTREQUESTCODE);
     }
 
 }

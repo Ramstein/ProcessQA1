@@ -73,7 +73,7 @@
 
 
     <EditText
-        android:id="@+id/n_que"
+        android:id="@+id/n_que_layout"
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:layout_above="@id/btn_schedule"
