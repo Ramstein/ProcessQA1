@@ -4,12 +4,14 @@ import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.app.TimePickerDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.Voice;
 import android.text.format.DateFormat;
@@ -49,6 +51,7 @@ import net.gotev.speech.ui.SpeechProgressView;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Iterator;
@@ -63,7 +66,10 @@ import static net.gotev.speechdemo.Utils.getSpeechInput;
 public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     private static final String get_url = "https://0yh5imhg3m.execute-api.ap-south-1.amazonaws.com/prod";
-    private static final double SPEECHRATE = 0.8;  // SpeechRate 0.0 < x < 2.0
+    private static final float SPEECHRATE = (float) 0.7;  // SpeechRate 0.0 < x < 2.0
+    private static final long[] TIMER_MILLIs = {30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
+            30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000};
+
     static TextView textViewCountDown;
     static TextView textView;
     static int n_que_index = 0;
@@ -74,12 +80,11 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static ImageButton button;
     private static SpeechProgressView progress;
     private static LinearLayout linearLayout;
-    private static Integer n_que = 20; //10 + 3 + 5 + more 2 extra // you can set the number
+    private static Integer n_que = 20; //10 + 3 + 5 + more 2 extra // you can set the number // 0 < n_que > 24
     private static Integer n_que_answered = 0;
     private static Integer n_que_answer_spoken = 0;
     private static boolean mIslistening = false;
     private static PreferencesHandler preferencesHandler;
-    private static TextToSpeech TTS;
     private TextView text;
     private EditText textToSpeech;
     private Handler backgroundHandler;
@@ -170,34 +175,38 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             @Override
             public void onFinish() {
                 timePickerFragment.timerRunning = false;
-                String temp_txt = n_que_layout.getText().toString();
-                if (!temp_txt.equals("") & temp_txt.matches("[0-9]+")) {
-                    int n = Integer.parseInt(temp_txt);
-                    if (n > 1 & n < 25) {
-                        n_que = n;
+                if (n_que_answered <= n_que) {
+                    String temp_txt = n_que_layout.getText().toString();
+                    if (!temp_txt.equals("") & temp_txt.matches("[0-9]+")) {
+                        int n = Integer.parseInt(temp_txt);
+                        if (n > 1 & n < 25) {
+                            n_que = n;
+                        } else {
+                            textView.setText("Going with 20 questions.");
+                        }
                     } else {
                         textView.setText("Going with 20 questions.");
                     }
-                } else {
-                    textView.setText("Going with 20 questions.");
+                    onSpeechToTextQuestion();
+                    processQuestionToAnswer();
+                    timePickerFragment.nextExecution();
+                } else { // all of the question answered from lambda, start speaking them
+                    Speech.getInstance().say("Answering the questions now", new TextToSpeechCallback() {
+                        @Override
+                        public void onStart() {
+                        }
+
+                        @Override
+                        public void onCompleted() {
+                            startAnsweringTheQuestions();
+                        }
+
+                        @Override
+                        public void onError() {
+                        }
+                    });
                 }
-                onSpeechToTextQuestion();
-                processQuestionToAnswer();
 
-                Speech.getInstance().say("Answering the questions now", new TextToSpeechCallback() {
-                    @Override
-                    public void onStart() {
-                    }
-
-                    @Override
-                    public void onCompleted() {
-                        startAnsweringTheQuestions();
-                    }
-
-                    @Override
-                    public void onError() {
-                    }
-                });
             }
         }.start();
         timePickerFragment.timerRunning = true;
@@ -220,18 +229,21 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     }
 
     private static void processQuestionToAnswer() {
-        for (int i = 0; i < Utils.SpeechRecognizerInput.size(); i++) {
-            String speech = Utils.SpeechRecognizerInput.get(i);
-            if (speech.equals("")) {
-                SpeakPromptly("Not a question.");
-            } else {
-                String url = createUrl(get_url, 0, sub_code, speech);
-                sendGetRequest(url);
-                String[] que_ans = preferencesHandler.getQueAnsFromPreferences("question" + (n_que_answered + 1), "answer" + (n_que_answered + 1));
-                if (que_ans[1].equals("")) {
-                    SpeakPromptly((n_que_answered + 1) + " Answer not found.");
-                    n_que_answered += 1;
-                }
+        String speech = "";
+        try {
+            speech = Utils.SpeechRecognizerInput.get(n_que_answered);
+        } catch (IndexOutOfBoundsException e) {
+            e.printStackTrace();
+        }
+        if (speech.equals("")) {
+            SpeakPromptly("Not a question.");
+        } else {
+            String url = createUrl(get_url, 0, sub_code, speech);
+            sendGetRequest(url);
+            String[] que_ans = preferencesHandler.getQueAnsFromPreferences("question" + (n_que_answered + 1), "answer" + (n_que_answered + 1));
+            if (que_ans[1].equals("")) {
+                SpeakPromptly((n_que_answered + 1) + " Answer not found.");
+                n_que_answered += 1;
             }
         }
     }
@@ -263,7 +275,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             }
         }, error -> {
             Log.e("sendGetRequest", "answer Request failed:" + error.getMessage());
-            ThreadSleep.sleep(1);
             textView.setText(("answer Request failed: " + error.getMessage()));
         });
         queue.add(stringRequest);
@@ -279,7 +290,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         return url;
     }
 
-
     private static synchronized void SpeakAnswer(String text) {
         String[] s_arr = text.split(" ");
         String words = "";
@@ -287,18 +297,32 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             words += s_arr[idx_space - 1] + " ";
             if (idx_space % 5 == 0 || idx_space == s_arr.length) {
                 for (int i = 0; i < 3; ) {
-                    if (!TTS.isSpeaking()) {
+                    if (!Speech.getInstance().isSpeaking()) {
+                        Speech.getInstance().setTextToSpeechRate(SPEECHRATE).say(words, new TextToSpeechCallback() {
+                            @Override
+                            public void onStart() {
+                            }
+
+                            @Override
+                            public void onCompleted() {
+                                Utils.sleep(1);
+
+                            }
+
+                            @Override
+                            public void onError() {
+                            }
+                        });
                         i += 1;
-                        ThreadSleep.sleep(1);
-                        TTS.speak(words, TextToSpeech.QUEUE_FLUSH, null);
                     }
                 }
-                ThreadSleep.sleep(2);
+                Utils.sleep(2);
                 words = "";
             }
         }
         gc();
     }
+
 
     private static synchronized void startTimerWithGoogleWindow(long ms) {
         timePickerFragment.timerRunning = true;
@@ -314,21 +338,38 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             @Override
             public void onFinish() {
                 timePickerFragment.timerRunning = false;
-                String temp_txt = n_que_layout.getText().toString();
-                if (!temp_txt.equals("") & temp_txt.matches("[0-9]+")) {
-                    int n = Integer.parseInt(temp_txt);
-                    if (n > 1 & n < 25) {
-                        n_que = n;
-                        Log.e("TTS", "n_que=" + n_que);
+                if (n_que_answered <= n_que) {
+                    String temp_txt = n_que_layout.getText().toString();
+                    if (!temp_txt.equals("") & temp_txt.matches("[0-9]+")) {
+                        int n = Integer.parseInt(temp_txt);
+                        if (n > 1 & n < 25) {
+                            n_que = n;
+                            Log.e("TTS", "n_que=" + n_que);
+                        } else {
+                            Log.e("TTS", "Going with 20 questions.");
+                        }
                     } else {
                         Log.e("TTS", "Going with 20 questions.");
                     }
-                } else {
-                    Log.e("TTS", "Going with 20 questions.");
+                    SpeechToText();  // launches speexh to text with a google interface window
+                    processQuestionToAnswer();
+                    timePickerFragment.nextExecution();
+                } else { // all of the question answered from lambda, start speaking them
+                    Speech.getInstance().say("Answering the questions now", new TextToSpeechCallback() {
+                        @Override
+                        public void onStart() {
+                        }
+
+                        @Override
+                        public void onCompleted() {
+                            startAnsweringTheQuestions();
+                        }
+
+                        @Override
+                        public void onError() {
+                        }
+                    });
                 }
-                SpeechToText();
-                processQuestionToAnswer();
-                startAnsweringTheQuestions();
             }
         }.start();
         timePickerFragment.timerRunning = true;
@@ -336,29 +377,19 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     private static void SpeechToText() {
         sub_code = editText.getText().toString().toUpperCase();
+        mIslistening = false;
         if (sub_code.length() > 3) {
-            for (n_que_index = 0; n_que_index < n_que; ) {
-                for (int j = 0; j < 3; j++) {
-                    SpeakPromptly("r" + (n_que_index + 1));
-                    Utils.test = false;
-                    if (getSpeechInput()) {
-                        ThreadSleep.sleep(20);
-//                        n_que_index += 1;
-//                        break;
-                        if (!Utils.SpeechRecognizerInput.get(n_que_index).equals("") & Utils.SpeechRecognizerInput.get(n_que_index).length() > 10) {
-                            n_que_index += 1;
-                            break;
-                        }
-                    }
-                }
-            }
+            SpeakPromptly("r" + (n_que_index + 1));
+            Utils.sleep(1);
+            Utils.test = false;
+            getSpeechInput();
+//            Utils.sleep(20);
         } else {
             for (int i = 0; i < 3; i++) {
                 SpeakPromptly("Not a valid subject code " + sub_code);
             }
         }
     }
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -382,7 +413,8 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         button = findViewById(R.id.button);
         button.setOnClickListener(view -> {
             Utils.test = true;
-            onSpeechToTextExec();
+//            onSpeechToTextExec();
+            Utils.getSpeechInput();
         });
 
         Button speak = findViewById(R.id.speak);
@@ -396,21 +428,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 ContextCompat.getColor(this, android.R.color.holo_red_dark)
         };
         progress.setColors(colors);
-
-        //################## TTS speaking use the same at taking the time of picture
-        TTS = new TextToSpeech(this, status -> {
-            if (status == TextToSpeech.SUCCESS) {
-                int result = TTS.setLanguage(Locale.ENGLISH);
-                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    Log.e("TTS", "English Language not downloaded.");
-                } else {
-                    Log.e("TTS", "Initialized TTS Engine.");
-                }
-            } else {
-                Log.e("TTS", "Initialization failed");
-            }
-        });
-        TTS.setSpeechRate((float) SPEECHRATE);
 
         Button btn_schedule = findViewById(R.id.btn_schedule);
         btn_schedule.setOnClickListener(v -> {
@@ -435,6 +452,26 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             startAnsweringTheQuestions();
         });
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == Utils.RECOGNIZERINTENTREQUESTCODE) {
+            if (resultCode == RESULT_OK && data != null) {
+                ArrayList<String> result = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                Utils.SpeechRecognizerInput.add(result.get(0).toUpperCase());
+                mIslistening = false;
+                Log.e("onActivityResult", String.valueOf(result));
+                if (Utils.test) {
+                    if (Utils.SpeechRecognizerInput.get((Utils.SpeechRecognizerInput.size() - 1)).equals("")) {
+                        SpeakPromptly("Not able to hear you.");
+                    }
+                    Utils.SpeechRecognizerInput.set((Utils.SpeechRecognizerInput.size() - 1), "");
+                }
+            }
+        }
+    }
+
 
     private void onSetSpeechToTextLanguage() {
         Speech.getInstance().getSupportedSpeechToTextLanguages(new SupportedLanguagesListener() {
@@ -602,10 +639,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (TTS != null) {
-            TTS.stop();
-            TTS.shutdown();
-        }
         Speech.getInstance().shutdown();
     }
 
@@ -697,13 +730,21 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 countDownTimer.cancel();
                 updateCountDownText(0);
             }
-            if (TTS != null) {  // Stopping TTS
-                TTS.stop();
-                TTS.shutdown();
-            }
             idx_ms = 0;
             textView.setText("Quanification cancelled.");
         }
-    }
 
+        @RequiresApi(api = Build.VERSION_CODES.O)
+        @SuppressLint("SetTextI18n")
+        private synchronized void nextExecution() {
+            if (countDownTimer != null) {
+                countDownTimer.cancel(); // first cancel previously running countdown timer
+            }
+            if (idx_ms <= TIMER_MILLIs.length) {
+                startTimer(TIMER_MILLIs[idx_ms]);
+                updateCountDownText(TIMER_MILLIs[idx_ms]);
+                idx_ms += 1;
+            }
+        }
+    }
 }
