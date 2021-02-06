@@ -1,18 +1,15 @@
 package net.gotev.speechdemo;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.Dialog;
 import android.app.TimePickerDialog;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.Voice;
 import android.text.format.DateFormat;
@@ -52,7 +49,6 @@ import net.gotev.speech.ui.SpeechProgressView;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Iterator;
@@ -60,17 +56,17 @@ import java.util.List;
 import java.util.Locale;
 
 import static java.lang.System.gc;
+import static net.gotev.speechdemo.Utils.LOG_TAG;
+import static net.gotev.speechdemo.Utils.SpeakPromptly;
+import static net.gotev.speechdemo.Utils.getSpeechInput;
 
 public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
-    private static final String LOG_TAG = MainActivity.class.getSimpleName();
     private static final String get_url = "https://0yh5imhg3m.execute-api.ap-south-1.amazonaws.com/prod";
     private static final double SPEECHRATE = 0.8;  // SpeechRate 0.0 < x < 2.0
-    private static final Integer RECOGNIZERINTENTREQUESTCODE = 10;
     static TextView textViewCountDown;
     static TextView textView;
     static int n_que_index = 0;
-    static boolean[] isSpeaking = {false};
     private static TimePickerFragment timePickerFragment;
     private static EditText editText;
     private static EditText n_que_layout;
@@ -79,10 +75,8 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static SpeechProgressView progress;
     private static LinearLayout linearLayout;
     private static Integer n_que = 20; //10 + 3 + 5 + more 2 extra // you can set the number
-    private static List<String> SpeechRecognizerInput = new ArrayList<>();
     private static Integer n_que_answered = 0;
     private static Integer n_que_answer_spoken = 0;
-    private static boolean test;
     private static boolean mIslistening = false;
     private static PreferencesHandler preferencesHandler;
     private static TextToSpeech TTS;
@@ -214,7 +208,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         if (sub_code.length() > 3) {
             for (n_que_index = 0; n_que_index < n_que; ) {
                 if (!mIslistening) {
-                    test = false;
+                    Utils.test = false;
                     onSpeechToTextExec();
                 }
             }
@@ -226,8 +220,8 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     }
 
     private static void processQuestionToAnswer() {
-        for (int i = 0; i < SpeechRecognizerInput.size(); i++) {
-            String speech = SpeechRecognizerInput.get(i);
+        for (int i = 0; i < Utils.SpeechRecognizerInput.size(); i++) {
+            String speech = Utils.SpeechRecognizerInput.get(i);
             if (speech.equals("")) {
                 SpeakPromptly("Not a question.");
             } else {
@@ -285,31 +279,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         return url;
     }
 
-    //#########################  TTS speaking the en language
-    private static synchronized void SpeakPromptly(String text) {
-        if (!isSpeaking[0]) {
-            Speech.getInstance().setTextToSpeechRate((float) 0.8).say(text, new TextToSpeechCallback() {
-                @Override
-                public void onStart() {
-                    Logger.error(LOG_TAG, "TTS onStart");
-                    isSpeaking[0] = true;
-                }
-
-                @Override
-                public void onCompleted() {
-                    Logger.error(LOG_TAG, "TTS onCompleted");
-                    isSpeaking[0] = false;
-                }
-
-                @Override
-                public void onError() {
-                    Logger.error(LOG_TAG, "TTS onError");
-                    isSpeaking[0] = false;
-                }
-            });
-        }
-        gc();
-    }
 
     private static synchronized void SpeakAnswer(String text) {
         String[] s_arr = text.split(" ");
@@ -371,12 +340,12 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             for (n_que_index = 0; n_que_index < n_que; ) {
                 for (int j = 0; j < 3; j++) {
                     SpeakPromptly("r" + (n_que_index + 1));
-                    test = false;
+                    Utils.test = false;
                     if (getSpeechInput()) {
                         ThreadSleep.sleep(20);
 //                        n_que_index += 1;
 //                        break;
-                        if (!SpeechRecognizerInput.get(n_que_index).equals("") & SpeechRecognizerInput.get(n_que_index).length() > 10) {
+                        if (!Utils.SpeechRecognizerInput.get(n_que_index).equals("") & Utils.SpeechRecognizerInput.get(n_que_index).length() > 10) {
                             n_que_index += 1;
                             break;
                         }
@@ -390,19 +359,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         }
     }
 
-    @SuppressLint({"QueryPermissionsNeeded", "SetTextI18n"})
-    public static boolean getSpeechInput() {
-        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        if (Utils.ResolveRecognizerIntent(intent) != null) {
-            Utils.StartRecognizerActivityForResult((Activity) Utils.context, intent, RECOGNIZERINTENTREQUESTCODE); //RECOGNIZERINTENTREQUESTCODE
-            return true;
-        } else {
-            textView.setText("Your device don't support speech input");
-            return false;
-        }
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -425,7 +381,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
         button = findViewById(R.id.button);
         button.setOnClickListener(view -> {
-            test = true;
+            Utils.test = true;
             onSpeechToTextExec();
         });
 
@@ -479,27 +435,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             startAnsweringTheQuestions();
         });
     }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == RECOGNIZERINTENTREQUESTCODE) {
-            if (resultCode == RESULT_OK && data != null) {
-                ArrayList<String> result = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-                SpeechRecognizerInput.add(result.get(0).toUpperCase());
-
-                if (test) {
-                    if (SpeechRecognizerInput.get((SpeechRecognizerInput.size() - 1)).equals("")) {
-                        SpeakPromptly("Not able to hear you.");
-                    } else {
-                        textView.setText(SpeechRecognizerInput.get((SpeechRecognizerInput.size() - 1)));
-                    }
-                    SpeechRecognizerInput.set((SpeechRecognizerInput.size() - 1), "");
-                }
-            }
-        }
-    }
-
 
     private void onSetSpeechToTextLanguage() {
         Speech.getInstance().getSupportedSpeechToTextLanguages(new SupportedLanguagesListener() {
@@ -614,10 +549,10 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         if (result.isEmpty()) {
             Speech.getInstance().say(getString(R.string.repeat));
         } else {
-            if (test) {
+            if (Utils.test) {
                 text.setText(result);
-            } else if (!test) {
-                SpeechRecognizerInput.add(result);
+            } else if (!Utils.test) {
+                Utils.SpeechRecognizerInput.add(result);
                 n_que_index += 1;
             }
         }
