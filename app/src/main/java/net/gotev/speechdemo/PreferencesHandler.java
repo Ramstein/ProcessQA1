@@ -7,12 +7,10 @@ import androidx.appcompat.app.AppCompatActivity;
 public class PreferencesHandler extends AppCompatActivity {
     private static final String app_name = "processqa";
     SharedPreferences q_pref;
-    Utils utils;
-
 
     public void putQueAnsInPreferences(int q_no, String question, String answer) {
         if (q_pref == null) {
-            q_pref = new Utils().context.getSharedPreferences(app_name, 0);
+            q_pref = Utils.context.getSharedPreferences(app_name, 0);
         }
         SharedPreferences.Editor q_pref_editor = q_pref.edit();
         q_pref_editor.putString("question" + q_no, q_no + " " + question);
@@ -22,7 +20,7 @@ public class PreferencesHandler extends AppCompatActivity {
 
     public String[] getQueAnsFromPreferences(String question_id, String answer_id) {
         if (q_pref == null) {
-            q_pref = new Utils().context.getSharedPreferences(app_name, 0);
+            q_pref = Utils.context.getSharedPreferences(app_name, 0);
         }
         String question = q_pref.getString(question_id, "");
         String answer = q_pref.getString(answer_id, "");
@@ -31,7 +29,7 @@ public class PreferencesHandler extends AppCompatActivity {
 
     public void removeQueAnsFromPreferences(String question_id, String answer_id) {
         if (q_pref == null) {
-            q_pref = new Utils().context.getSharedPreferences(app_name, 0);
+            q_pref = Utils.context.getSharedPreferences(app_name, 0);
         }
         SharedPreferences.Editor q_pref_editor = q_pref.edit();
         q_pref_editor.remove(question_id);

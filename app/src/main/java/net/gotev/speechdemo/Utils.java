@@ -3,6 +3,7 @@ package net.gotev.speechdemo;
 //import android.app.AlertDialog;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -17,7 +18,8 @@ import com.android.volley.toolbox.Volley;
 
 public class Utils extends AppCompatActivity {
     static final int RECORD_AUDIO_PERMISSIONS_REQUEST = 1;
-    public Context context;
+    @SuppressLint("StaticFieldLeak")
+    public static Context context;
 
 
     public AlertDialog.Builder alertDialogBuilder() {

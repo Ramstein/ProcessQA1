@@ -35,9 +35,11 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.StringRequest;
 
+import net.gotev.speech.GoogleVoiceTypingDisabledException;
 import net.gotev.speech.Logger;
 import net.gotev.speech.Speech;
 import net.gotev.speech.SpeechDelegate;
+import net.gotev.speech.SpeechRecognitionNotAvailable;
 import net.gotev.speech.SpeechUtil;
 import net.gotev.speech.SupportedLanguagesListener;
 import net.gotev.speech.TextToSpeechCallback;
@@ -59,7 +61,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
     private static final String get_url = "https://0yh5imhg3m.execute-api.ap-south-1.amazonaws.com/prod";
-    private static final int RECORD_AUDIO_PERMISSIONS_REQUEST = 1;
 
     static TextView textViewCountDown;
     static TextView textView;
@@ -110,12 +111,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 Log.e("STT", "doing STT for ProcessQA.");
                 onRecordAudioPermissionGranted();
             }
-//            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-//                Log.e("STT", "doing STT for ProcessQA.");
-//                onRecordAudioPermissionGranted();
-//            } else {
-//                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, RECORD_AUDIO_PERMISSIONS_REQUEST);
-//            }
         }
     }
 
@@ -125,24 +120,19 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
         try {
             Speech.getInstance().stopTextToSpeech();
-            Speech.getInstance().startListening(progress, (SpeechDelegate) utils.context);
-
-//        } catch (SpeechRecognitionNotAvailable exc) {
-//            showSpeechNotSupportedDialog();
-//
-//        } catch (GoogleVoiceTypingDisabledException exc) {
-//            showEnableGoogleVoiceTyping();
-        } catch (Exception e) {
-            e.printStackTrace();
+            Speech.getInstance().startListening(progress, (SpeechDelegate) Utils.context);
+        } catch (SpeechRecognitionNotAvailable exc) {
+            showSpeechNotSupportedDialog();
+        } catch (GoogleVoiceTypingDisabledException exc) {
+            showEnableGoogleVoiceTyping();
         }
-
     }
 
     private static void showSpeechNotSupportedDialog() {
         DialogInterface.OnClickListener dialogClickListener = (dialog, which) -> {
             switch (which) {
                 case DialogInterface.BUTTON_POSITIVE:
-                    SpeechUtil.redirectUserToGoogleAppOnPlayStore(utils.context);
+                    SpeechUtil.redirectUserToGoogleAppOnPlayStore(Utils.context);
                     break;
                 case DialogInterface.BUTTON_NEGATIVE:
                     break;
@@ -361,8 +351,8 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        utils = new Utils();
-        utils.context = MainActivity.this;
+//        utils = new Utils();
+        Utils.context = MainActivity.this;
         timePickerFragment = new TimePickerFragment();
         preferencesHandler = new PreferencesHandler();
         Speech.init(this, getPackageName(), mTttsInitListener);
@@ -523,7 +513,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode != RECORD_AUDIO_PERMISSIONS_REQUEST) {
+        if (requestCode != Utils.RECORD_AUDIO_PERMISSIONS_REQUEST) {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         } else {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
