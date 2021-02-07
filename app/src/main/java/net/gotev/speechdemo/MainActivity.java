@@ -75,14 +75,14 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static EditText editText;
     private static EditText n_que_layout;
     private static String sub_code = "";
-    private static ImageButton button;
+    private static ImageButton mic_btn;
     private static SpeechProgressView progress;
     private static LinearLayout linearLayout;
     private static Integer n_que_answered = 0;
     private static Integer n_que_answer_spoken = 0;
     private static boolean mIslistening = false;
     private static PreferencesHandler preferencesHandler;
-    private TextView text;
+    private TextView topTextView;
     private EditText textToSpeech;
     private Handler backgroundHandler;
     private HandlerThread backgroundThread;
@@ -115,7 +115,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     private static void onRecordAudioPermissionGranted() {
 
-        button.setVisibility(View.GONE);
+        mic_btn.setVisibility(View.GONE);
         linearLayout.setVisibility(View.VISIBLE);
 
         try {
@@ -343,7 +343,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             Utils.sleep(1);
             Utils.test = false;
             getSpeechInput();
-//            Utils.sleep(20);
         } else {
             for (int i = 0; i < 3; i++) {
                 SpeakPromptly("Not a valid subject code " + sub_code);
@@ -366,12 +365,12 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         textView = findViewById(R.id.textView);
         textViewCountDown = findViewById(R.id.textViewCountDown);
         linearLayout = findViewById(R.id.linearLayout);
-        text = findViewById(R.id.text);
+        topTextView = findViewById(R.id.topTextView);
         textToSpeech = findViewById(R.id.textToSpeech);
         progress = findViewById(R.id.progress);
 
-        button = findViewById(R.id.button);
-        button.setOnClickListener(view -> {
+        mic_btn = findViewById(R.id.mic_btn);
+        mic_btn.setOnClickListener(view -> {
             Utils.test = true;
             Utils.getSpeechInput();
         });
@@ -539,14 +538,14 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     @Override
     public void onSpeechResult(String result) {
-        button.setVisibility(View.VISIBLE);
+        mic_btn.setVisibility(View.VISIBLE);
         linearLayout.setVisibility(View.GONE);
 
         if (result.isEmpty()) {
             Speech.getInstance().say(getString(R.string.repeat));
         } else {
             if (Utils.test) {
-                text.setText(result);
+                topTextView.setText(result);
             } else if (!Utils.test) {
                 Utils.SpeechRecognizerInput.add(result);
                 n_que_index += 1;
@@ -557,9 +556,9 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     @Override
     public void onSpeechPartialResults(List<String> results) {
-        text.setText("");
+        topTextView.setText("");
         for (String partial : results) {
-            text.append(partial + " ");
+            topTextView.append(partial + " ");
         }
     }
 
@@ -674,7 +673,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
         @SuppressLint("SetTextI18n")
         private synchronized void updateTimeText(Calendar calender) {
-            textView.setText("Lambda set for: " + java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(calender.getTime()));
+            textView.setText("Quanification set for: " + java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(calender.getTime()));
         }
 
         @SuppressLint("DefaultLocale")

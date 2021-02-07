@@ -10,7 +10,7 @@
     tools:context="net.gotev.speechdemo.MainActivity">
 
     <TextView
-        android:id="@+id/text"
+        android:id="@+id/topTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/introduction"
@@ -22,7 +22,7 @@
         android:background="@android:color/transparent"
         android:layout_width="64dp"
         android:layout_height="64dp"
-        android:id="@+id/button"
+        android:id="@+id/mic_btn"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
         android:translationX="0dp"
