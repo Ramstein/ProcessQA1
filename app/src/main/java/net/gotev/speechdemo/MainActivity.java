@@ -48,9 +48,6 @@ import net.gotev.speech.TextToSpeechCallback;
 import net.gotev.speech.UnsupportedReason;
 import net.gotev.speech.ui.SpeechProgressView;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -69,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static final float SPEECHRATE = (float) 0.7;  // SpeechRate 0.0 < x < 2.0
     private static final long[] TIMER_MILLIs = {30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
             30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000};
-
+    private static final boolean TimerWithGoogleWindow = true;
     static TextView textViewCountDown;
     static TextView textView;
     static int n_que_index = 0;
@@ -187,7 +184,11 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                     } else {
                         textView.setText("Going with 20 questions.");
                     }
-                    onSpeechToTextQuestion();
+                    if (!TimerWithGoogleWindow) {
+                        onSpeechToTextQuestion();
+                    } else {
+                        SpeechToText();  // launches speech to text with a google interface window
+                    }
                     processQuestionToAnswer();
                     timePickerFragment.nextExecution();
                 } else { // all of the question answered from lambda, start speaking them
@@ -240,11 +241,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         } else {
             String url = createUrl(get_url, 0, sub_code, speech);
             sendGetRequest(url);
-            String[] que_ans = preferencesHandler.getQueAnsFromPreferences("question" + (n_que_answered + 1), "answer" + (n_que_answered + 1));
-            if (que_ans[1].equals("")) {
-                SpeakPromptly((n_que_answered + 1) + " Answer not found.");
-                n_que_answered += 1;
-            }
         }
     }
 
@@ -266,12 +262,24 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static synchronized void sendGetRequest(String url) {
         RequestQueue queue = Utils.Queue();
         StringRequest stringRequest = new StringRequest(Request.Method.GET, url, response -> {
-            Log.e("sendGetRequest", "Volley Request succeed:" + response);
-            try {
-                JSONObject jsonObject = new JSONObject(response);
-                preferencesHandler.putQueAnsInPreferences((n_que_answered + 1), jsonObject.getString("question"), jsonObject.getString("answer"));
-            } catch (JSONException e) {
-                e.printStackTrace();
+            response = response.replace("\n", "");
+            response = response.replace("\\", "");
+            String que = response.split("\": \"")[5].split("\", \"")[0]; // "\ " and ", "
+            String ans = response.split("\": \"")[6].split("\", \"")[0]; // "\ " and ", "
+            Log.e("sendGetRequest", "Volley Request succeed: " + response);
+            preferencesHandler.putQueAnsInPreferences((n_que_answered + 1), que, ans);
+
+//                // JSONObject > JsonArray
+//                String val = "{\"statusCode\":200,\n" +
+//                        "\"headers\":{\"Content-type\":\"application\\/json\"}," +
+//                        "\"body\":\"{\\\"launch_time\\\": \\\"21-02-06 22:36:46\\\", \\\"sub_code\\\": \\\"KCE051\\\", \\\"question\\\": \\\"what is magnetic confinement?\\\", \\\"answer\\\": \\\"Magnetic confinement fusion is an approach to generate thermonuclear fusion power that uses magnetic fields to confine fusion fuel in the form of a plasma. Magnetic confinement is one of two major branches of fusion energy research, along with inertial confinement fusion\\\\\\\\n'\\\", \\\"score\\\": 100}\"}";
+
+            String[] que_ans = preferencesHandler.getQueAnsFromPreferences("question" + (n_que_answered + 1), "answer" + (n_que_answered + 1));
+            if (que_ans[1].equals("")) {
+                SpeakPromptly((n_que_answered + 1) + " Answer not found.");
+            } else {
+                Log.e("processQuestionToAnswer", (n_que_answered + 1) + " " + Arrays.toString(que_ans));
+                n_que_answered += 1;
             }
         }, error -> {
             Log.e("sendGetRequest", "answer Request failed:" + error.getMessage());
@@ -323,57 +331,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         gc();
     }
 
-
-    private static synchronized void startTimerWithGoogleWindow(long ms) {
-        timePickerFragment.timerRunning = true;
-        timePickerFragment.countDownTimer = new CountDownTimer(ms, 1) {
-
-            @Override
-            public void onTick(long millisUntilFinished) {
-                timePickerFragment.updateCountDownText(millisUntilFinished);
-            }
-
-            @RequiresApi(api = Build.VERSION_CODES.O)
-            @SuppressLint("SetTextI18n")
-            @Override
-            public void onFinish() {
-                timePickerFragment.timerRunning = false;
-                if (n_que_answered <= n_que) {
-                    String temp_txt = n_que_layout.getText().toString();
-                    if (!temp_txt.equals("") & temp_txt.matches("[0-9]+")) {
-                        int n = Integer.parseInt(temp_txt);
-                        if (n > 1 & n < 25) {
-                            n_que = n;
-                            Log.e("TTS", "n_que=" + n_que);
-                        } else {
-                            Log.e("TTS", "Going with 20 questions.");
-                        }
-                    } else {
-                        Log.e("TTS", "Going with 20 questions.");
-                    }
-                    SpeechToText();  // launches speexh to text with a google interface window
-                    processQuestionToAnswer();
-                    timePickerFragment.nextExecution();
-                } else { // all of the question answered from lambda, start speaking them
-                    Speech.getInstance().say("Answering the questions now", new TextToSpeechCallback() {
-                        @Override
-                        public void onStart() {
-                        }
-
-                        @Override
-                        public void onCompleted() {
-                            startAnsweringTheQuestions();
-                        }
-
-                        @Override
-                        public void onError() {
-                        }
-                    });
-                }
-            }
-        }.start();
-        timePickerFragment.timerRunning = true;
-    }
 
     private static void SpeechToText() {
         sub_code = editText.getText().toString().toUpperCase();
@@ -620,7 +577,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         if (timePickerFragment.timerRunning) {
             timePickerFragment.endTimeInMillis = savedInstanceState.getLong("endTime");
             timePickerFragment.timeLeftInMillis = timePickerFragment.endTimeInMillis - System.currentTimeMillis();
-            startTimerWithGoogleWindow(timePickerFragment.timeLeftInMillis);
+            startTimer(timePickerFragment.timeLeftInMillis);
         }
     }
 
@@ -708,7 +665,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
                 updateTimeText(calender);
                 beginTimerMillis = calender.getTimeInMillis() - System.currentTimeMillis();
-                startTimerWithGoogleWindow(beginTimerMillis);
+                startTimer(beginTimerMillis);
                 updateCountDownText(beginTimerMillis);
             }, hour, minute, DateFormat.is24HourFormat(getActivity()));
         }
@@ -741,6 +698,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 countDownTimer.cancel(); // first cancel previously running countdown timer
             }
             if (idx_ms <= TIMER_MILLIs.length) {
+                Utils.sleep(1);
                 startTimer(TIMER_MILLIs[idx_ms]);
                 updateCountDownText(TIMER_MILLIs[idx_ms]);
                 idx_ms += 1;
