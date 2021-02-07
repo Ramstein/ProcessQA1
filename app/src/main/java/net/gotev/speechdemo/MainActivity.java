@@ -70,6 +70,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     static TextView textViewCountDown;
     static TextView textView;
     static int n_que_index = 0;
+    private static Integer n_que = 20; //10 + 3 + 5 + more 2 extra // you can set the number // 0 < n_que > 24
     private static TimePickerFragment timePickerFragment;
     private static EditText editText;
     private static EditText n_que_layout;
@@ -77,7 +78,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static ImageButton button;
     private static SpeechProgressView progress;
     private static LinearLayout linearLayout;
-    private static Integer n_que = 20; //10 + 3 + 5 + more 2 extra // you can set the number // 0 < n_que > 24
     private static Integer n_que_answered = 0;
     private static Integer n_que_answer_spoken = 0;
     private static boolean mIslistening = false;
@@ -234,6 +234,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         try {
             speech = Utils.SpeechRecognizerInput.get(n_que_answered);
         } catch (IndexOutOfBoundsException e) {
+            Log.e("startAnswering", "Testing that " + (n_que_answered + 1) + " question input is valid or not.");
             e.printStackTrace();
         }
         if (speech.equals("")) {
@@ -245,12 +246,15 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     }
 
     private static void startAnsweringTheQuestions() {
-        SpeakPromptly("Answering the questions now.");
         for (int i = 0; i < n_que_answered; i++) {
             String[] que_ans = preferencesHandler.getQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
             Log.e("startAnswering", Arrays.toString(que_ans));
             if (!que_ans[0].equals("") & !que_ans[1].equals("")) {
-                SpeakAnswer(que_ans[0] + " Answering now " + que_ans[1]);
+                SpeakPromptly(que_ans[0]);
+                Utils.sleep(10);
+                SpeakPromptly("Answering now");
+                Utils.sleep(1);
+                SpeakAnswer(que_ans[1]);
                 preferencesHandler.removeQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
             } else {
                 SpeakPromptly("Negative " + (i + 1));
@@ -278,7 +282,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             if (que_ans[1].equals("")) {
                 SpeakPromptly((n_que_answered + 1) + " Answer not found.");
             } else {
-                Log.e("processQuestionToAnswer", (n_que_answered + 1) + " " + Arrays.toString(que_ans));
                 n_que_answered += 1;
             }
         }, error -> {
@@ -370,7 +373,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         button = findViewById(R.id.button);
         button.setOnClickListener(view -> {
             Utils.test = true;
-//            onSpeechToTextExec();
             Utils.getSpeechInput();
         });
 
