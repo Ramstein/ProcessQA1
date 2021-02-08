@@ -63,22 +63,27 @@ public class Utils extends AppCompatActivity {
 
 
     public static synchronized void SpeakPromptly(String text) {
-        if (!Speech.getInstance().isSpeaking()) {
-            Speech.getInstance().setTextToSpeechRate((float) 0.8).say(text, new TextToSpeechCallback() {
-                @Override
-                public void onStart() {
-                }
+        while (true){
+            if (!Speech.getInstance().isSpeaking()) {
+                Speech.getInstance().setTextToSpeechRate((float) 0.8).say(text, new TextToSpeechCallback() {
+                    @Override
+                    public void onStart() {
+                    }
 
-                @Override
-                public void onCompleted() {
-                }
+                    @Override
+                    public void onCompleted() {
+                    }
 
-                @Override
-                public void onError() {
-                }
-            });
+                    @Override
+                    public void onError() {
+                    }
+                });
+                gc();
+                break;
+            }else{
+                Utils.sleep(1);
+            }
         }
-        gc();
     }
 
 

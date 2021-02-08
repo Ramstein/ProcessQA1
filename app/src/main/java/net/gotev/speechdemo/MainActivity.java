@@ -86,19 +86,24 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static final boolean TimerWithGoogleWindow = false;
     private static final String[] params = new String[3];
     public static Integer n_que_answered = 0;
+    public static Integer n_que_answer_spoken = 0;
+    public static boolean mIslistening = false;
+    @SuppressLint("StaticFieldLeak")
     static TextView textViewCountDown;
+    @SuppressLint("StaticFieldLeak")
     static TextView textView;
-    static Integer n_que_index = 0;
     private static Integer n_que = 20; //10 + 3 + 5 + more 2 extra // you can set the number // 0 < n_que > 24
     private static TimePickerFragment timePickerFragment;
+    @SuppressLint("StaticFieldLeak")
     private static EditText editText;
+    @SuppressLint("StaticFieldLeak")
     private static EditText n_que_layout;
     private static String sub_code = "";
+    @SuppressLint("StaticFieldLeak")
     private static ImageButton mic_btn;
     private static SpeechProgressView progress;
+    @SuppressLint("StaticFieldLeak")
     private static LinearLayout linearLayout;
-    private static Integer n_que_answer_spoken = 0;
-    private static boolean mIslistening = false;
     private static PreferencesHandler preferencesHandler;
     private final TextToSpeech.OnInitListener mTttsInitListener = status -> {
         switch (status) {
@@ -115,9 +120,9 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 break;
         }
     };
+    public Handler backgroundHandler;
     private TextView topTextView;
     private EditText textToSpeech;
-    private Handler backgroundHandler;
     private HandlerThread backgroundThread;
 
     public static void onSpeechToTextExec() {
@@ -234,7 +239,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         sub_code = editText.getText().toString().toUpperCase();
         mIslistening = false;
         if (sub_code.length() > 3) {
-            SpeakPromptly("r" + (n_que_index + 1));
+            SpeakPromptly("r" + (n_que_answered + 1));
             Utils.sleep(1);
             Utils.test = false;
             onSpeechToTextExec();
@@ -443,7 +448,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         sub_code = editText.getText().toString().toUpperCase();
         mIslistening = false;
         if (sub_code.length() > 3) {
-            SpeakPromptly("r" + (n_que_index + 1));
+            SpeakPromptly("r" + (n_que_answered + 1));
             Utils.sleep(1);
             Utils.test = false;
             getSpeechInput();
