@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static final float SPEECHRATE = (float) 0.7;  // SpeechRate 0.0 < x < 2.0
     private static final long[] TIMER_MILLIs = {30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
             30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000};
-    private static final boolean TimerWithGoogleWindow = true;
+    private static final boolean TimerWithGoogleWindow = false;
     static TextView textViewCountDown;
     static TextView textView;
     static int n_que_index = 0;
@@ -107,7 +107,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             Speech.getInstance().stopListening();
         } else {
             if (Utils.requestAudioPermission()) {
-                Log.e("STT", "doing STT for ProcessQA.");
                 onRecordAudioPermissionGranted();
             }
         }
@@ -120,8 +119,8 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
         try {
             Speech.getInstance().stopTextToSpeech();
+            Log.e("STT", "Speech.getInstance().startListening(progress, (SpeechDelegate) Utils.context);.");
             Speech.getInstance().startListening(progress, (SpeechDelegate) Utils.context);
-            Log.e("STT", "onRecordAudioPermissionGranted.");
         } catch (SpeechRecognitionNotAvailable exc) {
             showSpeechNotSupportedDialog();
         } catch (GoogleVoiceTypingDisabledException exc) {
@@ -184,12 +183,12 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                     } else {
                         textView.setText("Going with 20 questions.");
                     }
-                    if (!TimerWithGoogleWindow) {
-                        onSpeechToTextQuestion();
-                    } else {
+                    if (TimerWithGoogleWindow) {
                         SpeechToText();  // launches speech to text with a google interface window
+                        processQuestionToAnswer();
+                    } else {
+                        onSpeechToTextQuestion();
                     }
-                    processQuestionToAnswer();
                     timePickerFragment.nextExecution();
                 } else { // all of the question answered from lambda, start speaking them
                     Speech.getInstance().say("Answering the questions now", new TextToSpeechCallback() {
@@ -215,13 +214,12 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
     private static void onSpeechToTextQuestion() {
         sub_code = editText.getText().toString().toUpperCase();
+        mIslistening = false;
         if (sub_code.length() > 3) {
-            for (n_que_index = 0; n_que_index < n_que; ) {
-                if (!mIslistening) {
-                    Utils.test = false;
-                    onSpeechToTextExec();
-                }
-            }
+            SpeakPromptly("r" + (n_que_index + 1));
+            Utils.sleep(1);
+            Utils.test = false;
+            onSpeechToTextExec();
         } else {
             for (int i = 0; i < 3; i++) {
                 SpeakPromptly("Not a valid subject code " + sub_code);
@@ -232,6 +230,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static void processQuestionToAnswer() {
         String speech = "";
         try {
+            Log.e("processQuestionToAnswer", String.valueOf(n_que_answered));
             speech = Utils.SpeechRecognizerInput.get(n_que_answered);
         } catch (IndexOutOfBoundsException e) {
             Log.e("startAnswering", "Testing that " + (n_que_answered + 1) + " question input is valid or not.");
@@ -271,21 +270,18 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             String que = response.split("\": \"")[5].split("\", \"")[0]; // "\ " and ", "
             String ans = response.split("\": \"")[6].split("\", \"")[0]; // "\ " and ", "
             Log.e("sendGetRequest", "Volley Request succeed: " + response);
-            preferencesHandler.putQueAnsInPreferences((n_que_answered + 1), que, ans);
-
+            if (preferencesHandler.putQueAnsInPreferences((n_que_answered + 1), que, ans)) {
+                n_que_answered += 1;
+            } else {
+                SpeakPromptly((n_que_answered + 1) + " negative.");
+            }
 //                // JSONObject > JsonArray
 //                String val = "{\"statusCode\":200,\n" +
 //                        "\"headers\":{\"Content-type\":\"application\\/json\"}," +
 //                        "\"body\":\"{\\\"launch_time\\\": \\\"21-02-06 22:36:46\\\", \\\"sub_code\\\": \\\"KCE051\\\", \\\"question\\\": \\\"what is magnetic confinement?\\\", \\\"answer\\\": \\\"Magnetic confinement fusion is an approach to generate thermonuclear fusion power that uses magnetic fields to confine fusion fuel in the form of a plasma. Magnetic confinement is one of two major branches of fusion energy research, along with inertial confinement fusion\\\\\\\\n'\\\", \\\"score\\\": 100}\"}";
-
-            String[] que_ans = preferencesHandler.getQueAnsFromPreferences("question" + (n_que_answered + 1), "answer" + (n_que_answered + 1));
-            if (que_ans[1].equals("")) {
-                SpeakPromptly((n_que_answered + 1) + " Answer not found.");
-            } else {
-                n_que_answered += 1;
-            }
         }, error -> {
             Log.e("sendGetRequest", "answer Request failed:" + error.getMessage());
+            SpeakPromptly((n_que_answered + 1) + " negative.");
             textView.setText(("answer Request failed: " + error.getMessage()));
         });
         queue.add(stringRequest);
@@ -540,18 +536,20 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     public void onSpeechResult(String result) {
         mic_btn.setVisibility(View.VISIBLE);
         linearLayout.setVisibility(View.GONE);
-
-        if (result.isEmpty()) {
-            Speech.getInstance().say(getString(R.string.repeat));
-        } else {
+        if (!result.isEmpty()) {
+            Utils.SpeechRecognizerInput.add(result);
+            mIslistening = false;
+            Log.e("onSpeechResult", result);
             if (Utils.test) {
-                topTextView.setText(result);
-            } else if (!Utils.test) {
-                Utils.SpeechRecognizerInput.add(result);
-                n_que_index += 1;
+                if (Utils.SpeechRecognizerInput.get((Utils.SpeechRecognizerInput.size() - 1)).equals("")) {
+                    SpeakPromptly("Not able to hear you.");
+                }
+                Utils.SpeechRecognizerInput.set((Utils.SpeechRecognizerInput.size() - 1), "");
             }
+            Log.e("onSpeechResult", "Testing that " + (n_que_answered + 1) + " question input is valid or not.");
+            String url = createUrl(get_url, 0, sub_code, result);
+            sendGetRequest(url);
         }
-        mIslistening = false;
     }
 
     @Override

@@ -84,13 +84,16 @@ public class Utils extends AppCompatActivity {
 
     @SuppressLint({"QueryPermissionsNeeded", "SetTextI18n"})
     public static boolean getSpeechInput() {
-        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
+        Intent recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
 
-        if (Utils.ResolveRecognizerIntent(intent) != null) {
-            ((Activity) Utils.context).startActivityForResult(intent, RECOGNIZERINTENTREQUESTCODE);
+        recognizerIntent.putExtra("android.speech.extra.DICTATION_MODE", true);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
+
+        if (Utils.ResolveRecognizerIntent(recognizerIntent) != null) {
+            ((Activity) Utils.context).startActivityForResult(recognizerIntent, RECOGNIZERINTENTREQUESTCODE);
             Log.e("getSpeechInput", "Utils.StartRecognizerActivityForResult");
             return true;
         } else {
@@ -102,7 +105,6 @@ public class Utils extends AppCompatActivity {
     static void sleep(long second) {
         try {
             SECONDS.sleep(second);
-//            Thread.sleep(second*1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

@@ -8,7 +8,7 @@ public class PreferencesHandler extends AppCompatActivity {
     private static final String app_name = "processqa";
     SharedPreferences q_pref;
 
-    public void putQueAnsInPreferences(int q_no, String question, String answer) {
+    public boolean putQueAnsInPreferences(int q_no, String question, String answer) {
         if (q_pref == null) {
             q_pref = Utils.context.getSharedPreferences(app_name, 0);
         }
@@ -16,6 +16,7 @@ public class PreferencesHandler extends AppCompatActivity {
         q_pref_editor.putString("question" + q_no, q_no + " " + question);
         q_pref_editor.putString("answer" + q_no, answer);
         q_pref_editor.apply();
+        return true;
     }
 
     public String[] getQueAnsFromPreferences(String question_id, String answer_id) {

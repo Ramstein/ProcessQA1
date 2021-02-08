@@ -3,73 +3,73 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingBottom="@dimen/activity_vertical_margin"
     android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin"
     tools:context="net.gotev.speechdemo.MainActivity">
 
     <TextView
         android:id="@+id/topTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/introduction"
         android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_centerHorizontal="true"
+        android:text="@string/introduction" />
 
 
     <ImageButton
-        android:background="@android:color/transparent"
+        android:id="@+id/mic_btn"
         android:layout_width="64dp"
         android:layout_height="64dp"
-        android:id="@+id/mic_btn"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
+        android:background="@android:color/transparent"
+        android:src="@drawable/ic_mic"
         android:translationX="0dp"
-        android:translationY="-260dp"
-        android:src="@drawable/ic_mic" />
+        android:translationY="-260dp" />
 
     <LinearLayout
-        android:orientation="vertical"
+        android:id="@+id/linearLayout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
         android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:orientation="vertical"
         android:translationX="0dp"
         android:translationY="-260dp"
-        android:visibility="gone"
-        android:id="@+id/linearLayout">
+        android:visibility="gone">
 
         <net.gotev.speech.ui.SpeechProgressView
             android:id="@+id/progress"
             android:layout_width="120dp"
-            android:layout_height="150dp"/>
+            android:layout_height="150dp" />
 
     </LinearLayout>
 
     <EditText
+        android:id="@+id/textToSpeech"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/textToSpeech"
+        android:layout_alignTop="@+id/speak"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentBottom="true"
+        android:layout_toLeftOf="@+id/speak"
         android:hint="@string/tts_hint"
         android:translationX="0dp"
-        android:translationY="-500dp"
-        android:layout_alignTop="@+id/speak"
-        android:layout_toLeftOf="@+id/speak"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentBottom="true" />
+        android:translationY="-500dp" />
 
     <Button
+        android:id="@+id/speak"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/say_something"
-        android:id="@+id/speak"
-        android:translationX="0dp"
-        android:translationY="-500dp"
-        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true" />
+        android:layout_alignParentBottom="true"
+        android:text="@string/say_something"
+        android:translationX="0dp"
+        android:translationY="-500dp" />
 
 
     <EditText
@@ -84,6 +84,7 @@
         android:inputType="textMultiLine"
         android:translationX="0dp"
         android:translationY="-10dp" />
+
     <EditText
         android:id="@+id/editText"
         android:layout_width="match_parent"
@@ -94,6 +95,7 @@
         android:hint="sub_code or speak test."
         android:inputType="textMultiLine"
         android:translationY="40dp" />
+
     <Button
         android:id="@+id/sub_code_btn"
         android:layout_width="180dp"
@@ -136,12 +138,12 @@
 
     <Button
         android:id="@+id/btnCancel"
-        android:layout_width="400dp"
+        android:layout_width="95dp"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:layout_marginTop="3dp"
         android:background="@color/colorAccent"
-        android:text="Cancel Quanification"
+        android:text="Cancel"
         android:translationY="300dp" />
 
 </RelativeLayout>

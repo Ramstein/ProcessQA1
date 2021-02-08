@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="Gradle: ./app/src/main/java/net/gotev/speechdemo/json-simple-1.1.jar">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/app/src/main/java/net/gotev/speechdemo/json-simple-1.1.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

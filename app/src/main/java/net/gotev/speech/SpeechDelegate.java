@@ -36,5 +36,4 @@ public interface SpeechDelegate {
      *               This is ensured to be non null.
      */
     void onSpeechResult(String result);
-
 }
