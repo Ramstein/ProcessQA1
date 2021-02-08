@@ -33,7 +33,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 
-import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -52,7 +51,9 @@ import net.gotev.speech.TextToSpeechCallback;
 import net.gotev.speech.UnsupportedReason;
 import net.gotev.speech.ui.SpeechProgressView;
 
-import java.nio.charset.StandardCharsets;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -73,15 +74,21 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static final String POST_URL = "https://89t84kai7b.execute-api.ap-south-1.amazonaws.com/prod";
     private static final boolean API_POST = false;
     private static final float SPEECHRATE = (float) 0.7;  // SpeechRate 0.0 < x < 2.0
-    private static final long[] TIMER_MILLIs = {30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
-            30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
-            30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
-            30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000};
+    private static final long[] TIMER_MILLIs = {
+            30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
+            30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
+            30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
+            30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
+            30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
+            30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
+            30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
+            30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000};
     private static final boolean TimerWithGoogleWindow = false;
     private static final String[] params = new String[3];
+    public static Integer n_que_answered = 0;
     static TextView textViewCountDown;
     static TextView textView;
-    static int n_que_index = 0;
+    static Integer n_que_index = 0;
     private static Integer n_que = 20; //10 + 3 + 5 + more 2 extra // you can set the number // 0 < n_que > 24
     private static TimePickerFragment timePickerFragment;
     private static EditText editText;
@@ -90,7 +97,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static ImageButton mic_btn;
     private static SpeechProgressView progress;
     private static LinearLayout linearLayout;
-    private static Integer n_que_answered = 0;
     private static Integer n_que_answer_spoken = 0;
     private static boolean mIslistening = false;
     private static PreferencesHandler preferencesHandler;
@@ -253,7 +259,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         } else {
             String url = createUrl(0, sub_code, speech);
             if (API_POST) {
-                sendPostRequest(url, params);
+                sendPostRequest(url);
             } else {
                 sendGetRequest(url);
             }
@@ -305,13 +311,21 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         queue.add(stringRequest);
     }
 
-    private static synchronized void sendPostRequest(String url, String[] params) {
+    private static synchronized void sendPostRequest(String url) {
         Map<String, String> url_params = new HashMap<>();
         RequestQueue queue = Utils.Queue();
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, url, response -> {
-            Log.e("sendPostRequest", "Volley Request succeed: " + response);
-            response = response.replace("\n", "");
-            response = response.replace("\\", "");
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, POST_URL, response -> {
+            try {
+                JSONObject jsonObject = new JSONObject(response);
+                Log.e("sendPostRequest", "Volley Request succeed: " + jsonObject);
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+//            Log.e("sendPostRequest", "Volley Request succeed: " + response);
+//            response = response.replace("\n", "");
+//            response = response.replace("\\", "");
 //            Log.e("sendPostRequest", "Volley Request succeed: " + response);
 //            String que = response.split("\": \"")[5].split("\", \"")[0]; // "\ " and ", "
 //            String ans = response.split("\": \"")[6].split("\", \"")[0]; // "\ " and ", "
@@ -332,42 +346,41 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         }) {
             @Override
             protected Map<String, String> getParams() {
-                url_params.put("test", params[0]);
-                url_params.put("sub_code", params[1]);
-                url_params.put("question", params[2]);
+                url_params.put("t", MainActivity.params[0]);
+                url_params.put("s", MainActivity.params[1]);
+                url_params.put("q", MainActivity.params[2]);
                 return url_params;
             }
 
-            @Override
-            public Map<String, String> getHeaders() {
-                HashMap<String, String> headers = new HashMap<>();
-                headers.put("Content-Type", "application/json; charset=utf-8");
-                return headers;
-            }
-
-            @Override
-            public String getBodyContentType() {
-                return "application/json; charset=utf-8";
-            }
-
-            @Override
-            public byte[] getBody() {
-                return url_params == null ? null : url_params.toString().getBytes(StandardCharsets.UTF_8);
-            }
+//            @Override
+//            public Map<String, String> getHeaders() {
+//                HashMap<String, String> headers = new HashMap<>();
+//                headers.put("Content-Type", "application/json; charset=utf-8");
+//                return headers;
+//            }
+//
+//            @Override
+//            public String getBodyContentType() {
+//                return "application/json; charset=utf-8";
+//            }
+//
+//            @Override
+//            public byte[] getBody() {
+//                return url_params == null ? null : url_params.toString().getBytes(StandardCharsets.UTF_8);
+//            }
 
             @Override
             protected Response<String> parseNetworkResponse(NetworkResponse response) {
                 String responseString = "";
                 if (response != null) {
                     responseString = String.valueOf(response.statusCode);
-                    // can get more details such as response.headers
-                    Log.e("sendPostRequest", "Volley Request succeed: " + response);
                 }
                 return Response.success(responseString, HttpHeaderParser.parseCacheHeaders(response));
             }
+
         };
         // Add the reliability on the connection.
-        stringRequest.setRetryPolicy(new DefaultRetryPolicy(10000, 1, 1.0f));
+//        stringRequest.setRetryPolicy(new DefaultRetryPolicy(20000, 2, 1.0f));
         queue.add(stringRequest);
     }
 
@@ -379,14 +392,14 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         params[2] = question;
         String url;
         if (API_POST) {
-            url = POST_URL + "?test" + "=" + test +
-                    "&sub_code" + "=" + sub_code +
-                    "&question" + "=" + question;
+            url = POST_URL + "?t" + "=" + test +
+                    "&s" + "=" + sub_code +
+                    "&q" + "=" + question;
             Log.e("params: ", "POST_URL: " + url);
         } else {
-            url = GET_URL + "?test" + "=" + test +
-                    "&sub_code" + "=" + sub_code +
-                    "&question" + "=" + question;
+            url = GET_URL + "?t" + "=" + test +
+                    "&s" + "=" + sub_code +
+                    "&q" + "=" + question;
             Log.e("params: ", "GET_URL: " + url);
         }
         return url;
@@ -496,7 +509,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         sub_code_btn.setOnClickListener(view -> {
             String url = createUrl(1, "KCE051", "As people have said, calling the Toast initiation within onResponse() works.");
             if (API_POST) {
-                sendPostRequest(url, params);
+                sendPostRequest(url);
             } else {
                 sendGetRequest(url);
             }
@@ -647,7 +660,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             }
             String url = createUrl(0, sub_code, result);
             if (API_POST) {
-                sendPostRequest(url, params);
+                sendPostRequest(url);
             } else {
                 sendGetRequest(url);
             }
