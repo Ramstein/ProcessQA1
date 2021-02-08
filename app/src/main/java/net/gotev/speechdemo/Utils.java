@@ -34,6 +34,8 @@ public class Utils extends AppCompatActivity {
     public static final String LOG_TAG = MainActivity.class.getSimpleName();
     public static final Integer RECOGNIZERINTENTREQUESTCODE = 10;
     public static List<String> SpeechRecognizerInput = new ArrayList<>();
+    public static boolean isBluetoothConnected = false;
+
     public static boolean test;
     @SuppressLint("StaticFieldLeak")
     public static Context context;
@@ -63,7 +65,7 @@ public class Utils extends AppCompatActivity {
 
     public static synchronized boolean SpeakPromptly(String text) {
         while (true) {
-            if (!Speech.getInstance().isSpeaking()) {
+            if (!Speech.getInstance().isSpeaking() & isBluetoothConnected) {
                 Speech instance = Speech.getInstance();
                 instance.setTextToSpeechRate((float) 0.8);
                 instance.say(text, new TextToSpeechCallback() {
@@ -97,7 +99,7 @@ public class Utils extends AppCompatActivity {
         recognizerIntent.putExtra("android.speech.extra.DICTATION_MODE", true);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
 
-        if (Utils.ResolveRecognizerIntent(recognizerIntent) != null) {
+        if (Utils.ResolveRecognizerIntent(recognizerIntent) != null & isBluetoothConnected) {
             ((Activity) Utils.context).startActivityForResult(recognizerIntent, RECOGNIZERINTENTREQUESTCODE);
             Log.e("getSpeechInput", "Utils.StartRecognizerActivityForResult");
             return true;

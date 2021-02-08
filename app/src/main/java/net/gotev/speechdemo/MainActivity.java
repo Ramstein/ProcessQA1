@@ -3,8 +3,13 @@ package net.gotev.speechdemo;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.app.TimePickerDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -88,6 +93,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     public static Integer n_que_answered = 0;
     public static Integer n_que_answer_spoken = 0;
     public static boolean mIslistening = false;
+
     @SuppressLint("StaticFieldLeak")
     static TextView textViewCountDown;
     @SuppressLint("StaticFieldLeak")
@@ -120,6 +126,30 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 break;
         }
     };
+    //The BroadcastReceiver that listens for bluetooth broadcasts
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+
+            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                //Device found
+            } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                //Device is now connected
+                Utils.isBluetoothConnected = true;
+                Log.e("BluetoothDevice", "Utils.isBluetoothConnected = true;  ");
+            } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+                //Done searching
+            } else if (BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(action)) {
+                //Device is about to disconnect
+            } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+                Utils.isBluetoothConnected = false;
+                Log.e("BluetoothDevice", "Utils.isBluetoothConnected = false;  ");
+                //Device has disconnected
+            }
+        }
+    };
     public Handler backgroundHandler;
     private TextView topTextView;
     private EditText textToSpeech;
@@ -129,7 +159,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         if (Speech.getInstance().isListening()) {
             Speech.getInstance().stopListening();
         } else {
-            if (Utils.requestAudioPermission()) {
+            if (Utils.requestAudioPermission() & Utils.isBluetoothConnected) {
                 onRecordAudioPermissionGranted();
             }
         }
@@ -277,9 +307,9 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             String[] que_ans = preferencesHandler.getQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
             Log.e("startAnswering", Arrays.toString(que_ans));
             if (!que_ans[0].equals("") & !que_ans[1].equals("")) {
-                if(SpeakPromptly(que_ans[0])){
+                if (SpeakPromptly(que_ans[0])) {
                     Utils.sleep(10);
-                    if(SpeakPromptly("Answering now")){
+                    if (SpeakPromptly("Answering now")) {
                         Utils.sleep(1);
                         SpeakAnswer(que_ans[1]);
                         preferencesHandler.removeQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
@@ -420,7 +450,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             words += s_arr[idx_space - 1] + " ";
             if (idx_space % 5 == 0 || idx_space == s_arr.length) {
                 for (int i = 0; i < 3; ) {
-                    if (!Speech.getInstance().isSpeaking()) {
+                    if (!Speech.getInstance().isSpeaking() & Utils.isBluetoothConnected) {
                         Speech.getInstance().setTextToSpeechRate(SPEECHRATE).say(words, new TextToSpeechCallback() {
                             @Override
                             public void onStart() {
@@ -446,7 +476,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         }
         gc();
     }
-
 
     private static void SpeechToText() {
         sub_code = editText.getText().toString().toUpperCase();
@@ -526,6 +555,13 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             textView.setText(que_ans[1]);
             startAnsweringTheQuestions();
         });
+
+        //// Bluetooth controls
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        this.registerReceiver(mReceiver, filter);
     }
 
     @Override
