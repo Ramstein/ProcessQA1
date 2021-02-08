@@ -233,11 +233,11 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             Log.e("processQuestionToAnswer", String.valueOf(n_que_answered));
             speech = Utils.SpeechRecognizerInput.get(n_que_answered);
         } catch (IndexOutOfBoundsException e) {
-            Log.e("startAnswering", "Testing that " + (n_que_answered + 1) + " question input is valid or not.");
             e.printStackTrace();
         }
         if (speech.equals("")) {
             SpeakPromptly("Not a question.");
+            Utils.sleep(1);
         } else {
             String url = createUrl(get_url, 0, sub_code, speech);
             sendGetRequest(url);
@@ -275,6 +275,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             } else {
                 SpeakPromptly((n_que_answered + 1) + " negative.");
             }
+            Log.e("sendGetRequest", "Volley Request succeed: n_que_answered: " + n_que_answered);
 //                // JSONObject > JsonArray
 //                String val = "{\"statusCode\":200,\n" +
 //                        "\"headers\":{\"Content-type\":\"application\\/json\"}," +
@@ -282,6 +283,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         }, error -> {
             Log.e("sendGetRequest", "answer Request failed:" + error.getMessage());
             SpeakPromptly((n_que_answered + 1) + " negative.");
+            Utils.sleep(1);
             textView.setText(("answer Request failed: " + error.getMessage()));
         });
         queue.add(stringRequest);
@@ -546,7 +548,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 }
                 Utils.SpeechRecognizerInput.set((Utils.SpeechRecognizerInput.size() - 1), "");
             }
-            Log.e("onSpeechResult", "Testing that " + (n_que_answered + 1) + " question input is valid or not.");
             String url = createUrl(get_url, 0, sub_code, result);
             sendGetRequest(url);
         }
