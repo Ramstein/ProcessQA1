@@ -220,8 +220,9 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                         }
 
                         @Override
-                        public void onCompleted() {
+                        public boolean onCompleted() {
                             startAnsweringTheQuestions();
+                            return false;
                         }
 
                         @Override
@@ -276,12 +277,14 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             String[] que_ans = preferencesHandler.getQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
             Log.e("startAnswering", Arrays.toString(que_ans));
             if (!que_ans[0].equals("") & !que_ans[1].equals("")) {
-                SpeakPromptly(que_ans[0]);
-                Utils.sleep(10);
-                SpeakPromptly("Answering now");
-                Utils.sleep(1);
-                SpeakAnswer(que_ans[1]);
-                preferencesHandler.removeQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
+                if(SpeakPromptly(que_ans[0])){
+                    Utils.sleep(10);
+                    if(SpeakPromptly("Answering now")){
+                        Utils.sleep(1);
+                        SpeakAnswer(que_ans[1]);
+                        preferencesHandler.removeQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
+                    }
+                }
             } else {
                 SpeakPromptly("Negative " + (i + 1));
             }
@@ -424,9 +427,10 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                             }
 
                             @Override
-                            public void onCompleted() {
+                            public boolean onCompleted() {
                                 Utils.sleep(1);
 
+                                return false;
                             }
 
                             @Override

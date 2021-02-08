@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static java.lang.System.gc;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class Utils extends AppCompatActivity {
@@ -62,25 +61,26 @@ public class Utils extends AppCompatActivity {
     }
 
 
-    public static synchronized void SpeakPromptly(String text) {
-        while (true){
+    public static synchronized boolean SpeakPromptly(String text) {
+        while (true) {
             if (!Speech.getInstance().isSpeaking()) {
-                Speech.getInstance().setTextToSpeechRate((float) 0.8).say(text, new TextToSpeechCallback() {
+                Speech instance = Speech.getInstance();
+                instance.setTextToSpeechRate((float) 0.8);
+                instance.say(text, new TextToSpeechCallback() {
                     @Override
                     public void onStart() {
                     }
 
                     @Override
-                    public void onCompleted() {
+                    public boolean onCompleted() {
+                        return true;
                     }
 
                     @Override
                     public void onError() {
                     }
                 });
-                gc();
-                break;
-            }else{
+            } else {
                 Utils.sleep(1);
             }
         }
