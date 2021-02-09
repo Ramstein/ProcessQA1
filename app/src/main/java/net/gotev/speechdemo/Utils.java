@@ -5,6 +5,8 @@ package net.gotev.speechdemo;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothHeadset;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -114,6 +116,19 @@ public class Utils extends AppCompatActivity {
             SECONDS.sleep(second);
         } catch (InterruptedException e) {
             e.printStackTrace();
+        }
+    }
+
+    public static boolean isBluetoothHeadsetConnected() {
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        Utils.isBluetoothConnected = mBluetoothAdapter != null && mBluetoothAdapter.isEnabled()
+                && mBluetoothAdapter.getProfileConnectionState(BluetoothHeadset.HEADSET) == BluetoothHeadset.STATE_CONNECTED;
+        if (Utils.isBluetoothConnected) {
+            Log.e("BluetoothHeadset", "isBluetoothHeadsetConnected: " + Utils.isBluetoothConnected);
+            return true;
+        } else {
+            Log.e("BluetoothHeadset", "isBluetoothHeadsetConnected: " + Utils.isBluetoothConnected);
+            return false;
         }
     }
 }

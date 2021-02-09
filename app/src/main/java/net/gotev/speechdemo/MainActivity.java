@@ -72,6 +72,7 @@ import static java.lang.System.gc;
 import static net.gotev.speechdemo.Utils.LOG_TAG;
 import static net.gotev.speechdemo.Utils.SpeakPromptly;
 import static net.gotev.speechdemo.Utils.getSpeechInput;
+import static net.gotev.speechdemo.Utils.isBluetoothHeadsetConnected;
 
 public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
@@ -127,7 +128,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         }
     };
     //The BroadcastReceiver that listens for bluetooth broadcasts
-    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver BluetoothReciever = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
@@ -138,14 +139,14 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
                 //Device is now connected
                 Utils.isBluetoothConnected = true;
-                Log.e("BluetoothDevice", "Utils.isBluetoothConnected = true;  ");
+                Log.e("BluetoothDevice", "Utils.isBluetoothConnected = true;");
             } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                 //Done searching
             } else if (BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(action)) {
                 //Device is about to disconnect
             } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
                 Utils.isBluetoothConnected = false;
-                Log.e("BluetoothDevice", "Utils.isBluetoothConnected = false;  ");
+                Log.e("BluetoothDevice", "Utils.isBluetoothConnected = false;");
                 //Device has disconnected
             }
         }
@@ -492,6 +493,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         }
     }
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -556,12 +558,14 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             startAnsweringTheQuestions();
         });
 
-        //// Bluetooth controls
+        //// BluetoothReciever updating the variable Utils.isBluetoothConnected to true or false
         IntentFilter filter = new IntentFilter();
         filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-        this.registerReceiver(mReceiver, filter);
+        this.registerReceiver(BluetoothReciever, filter);
+
+        Utils.isBluetoothConnected = isBluetoothHeadsetConnected();
     }
 
     @Override
