@@ -13,8 +13,13 @@ public class PreferencesHandler extends AppCompatActivity {
             q_pref = Utils.context.getSharedPreferences(app_name, 0);
         }
         SharedPreferences.Editor q_pref_editor = q_pref.edit();
-        q_pref_editor.putString("question" + q_no, q_no + " " + question);
-        q_pref_editor.putString("answer" + q_no, answer);
+        if (!Utils.test) {
+            q_pref_editor.putString("question" + q_no, q_no + " " + question);
+            q_pref_editor.putString("answer" + q_no, answer);
+        } else {
+            q_pref_editor.putString("question_t", q_no + " " + question);
+            q_pref_editor.putString("answer_t", answer);
+        }
         q_pref_editor.apply();
         return true;
     }

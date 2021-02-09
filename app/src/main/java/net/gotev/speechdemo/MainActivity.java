@@ -102,7 +102,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static Integer n_que = 20; //10 + 3 + 5 + more 2 extra // you can set the number // 0 < n_que > 24
     private static TimePickerFragment timePickerFragment;
     @SuppressLint("StaticFieldLeak")
-    private static EditText editText;
+    private static EditText syb_code_editText;
     @SuppressLint("StaticFieldLeak")
     private static EditText n_que_layout;
     private static String sub_code = "";
@@ -227,42 +227,45 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 @Override
                 public void onFinish() {
                     timePickerFragment.timerRunning = false;
-                    if (n_que_answered <= n_que) {
-                        String temp_txt = n_que_layout.getText().toString();
-                        if (!temp_txt.equals("") & temp_txt.matches("[0-9]+")) {
-                            int n = Integer.parseInt(temp_txt);
-                            if (n > 1 & n < 25) {
-                                n_que = n;
+                    if (Utils.isBluetoothConnected) {
+                        if (n_que_answered <= n_que) {
+                            String temp_txt = n_que_layout.getText().toString();
+                            if (!temp_txt.equals("") & temp_txt.matches("[0-9]+")) {
+                                int n = Integer.parseInt(temp_txt);
+                                if (n > 1 & n < 25) {
+                                    n_que = n;
+                                } else {
+                                    textView.setText("Going with 20 questions.");
+                                }
                             } else {
                                 textView.setText("Going with 20 questions.");
                             }
-                        } else {
-                            textView.setText("Going with 20 questions.");
-                        }
-                        if (TimerWithGoogleWindow) {
-                            SpeechToText();  // launches speech to text with a google interface window
-                            processQuestionToAnswer();
-                        } else {
-                            onSpeechToTextQuestion();
-                        }
-                        timePickerFragment.nextExecution();
-                    } else { // all of the question answered from lambda, start speaking them
-                        Speech.getInstance().say("Answering the questions now", new TextToSpeechCallback() {
-                            @Override
-                            public void onStart() {
+                            if (TimerWithGoogleWindow) {
+                                SpeechToText();  // launches speech to text with a google interface window
+                                processQuestionToAnswer();
+                            } else {
+                                onSpeechToTextQuestion();
                             }
+                            timePickerFragment.nextExecution();
+                        } else { // all of the question answered from lambda, start speaking them
+                            Speech.getInstance().say("Answering the questions now", new TextToSpeechCallback() {
+                                @Override
+                                public void onStart() {
+                                }
 
-                            @Override
-                            public void onCompleted() {
-                                startAnsweringTheQuestions();
-                            }
+                                @Override
+                                public void onCompleted() {
+                                    startAnsweringTheQuestions();
+                                }
 
-                            @Override
-                            public void onError() {
-                            }
-                        });
+                                @Override
+                                public void onError() {
+                                }
+                            });
+                        }
+                    } else {
+                        Log.e("isBluetoothConnected: ", "startTimer.finish() : " + Utils.isBluetoothConnected);
                     }
-
                 }
             }.start();
             timePickerFragment.timerRunning = true;
@@ -272,7 +275,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     }
 
     private static void onSpeechToTextQuestion() {
-        sub_code = editText.getText().toString().toUpperCase();
+        sub_code = syb_code_editText.getText().toString().toUpperCase();
         mIslistening = false;
         if (sub_code.length() > 3) {
             SpeakPromptly("r" + (n_que_answered + 1));
@@ -315,7 +318,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 SpeakPromptly("Question " + (i + 1) + " " + que_ans[0]);
                 Utils.sleep(10);
                 SpeakPromptly("Answering now");
-                Utils.sleep(1);
                 SpeakAnswer(que_ans[1]);
                 preferencesHandler.removeQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
             } else {
@@ -476,7 +478,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     }
 
     private static void SpeechToText() {
-        sub_code = editText.getText().toString().toUpperCase();
+        sub_code = syb_code_editText.getText().toString().toUpperCase();
         mIslistening = false;
         if (sub_code.length() > 3) {
             SpeakPromptly("r" + (n_que_answered + 1));
@@ -503,7 +505,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         Speech.init(this, getPackageName(), mTttsInitListener);
 
         n_que_layout = findViewById(R.id.n_que_layout);
-        editText = findViewById(R.id.editText);
+        syb_code_editText = findViewById(R.id.syb_code_editText);
         textView = findViewById(R.id.textView);
         textViewCountDown = findViewById(R.id.textViewCountDown);
         linearLayout = findViewById(R.id.linearLayout);
@@ -549,15 +551,23 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
         Button sub_code_btn = findViewById(R.id.sub_code_btn);
         sub_code_btn.setOnClickListener(view -> {
-            String url = createUrl(1, "KCE051", "As people have said, calling the Toast initiation within onResponse() works.");
+            Utils.test = true;
+            String sub_code = syb_code_editText.getText().toString();
+            String url = createUrl(1, sub_code, "As people have said, calling the Toast initiation within onResponse() works.");
             if (API_POST) {
                 sendPostRequest(url);
             } else {
                 sendGetRequest(url);
             }
-            String[] que_ans = preferencesHandler.getQueAnsFromPreferences("question" + 1, "answer" + 1);
-            textView.setText(que_ans[1]);
-            startAnsweringTheQuestions();
+            String[] que_ans = preferencesHandler.getQueAnsFromPreferences("question_t", "answer_t");
+            if (!que_ans[0].equals("")) {
+                textView.setText("sub_code: " + sub_code + " available.");
+            } else {
+                textView.setText("sub_code: " + sub_code + " unavailable.");
+            }
+            if (isBluetoothConnected) {
+                startAnsweringTheQuestions();
+            }
         });
 
         //// BluetoothReciever updating the variable Utils.isBluetoothConnected to true or false
