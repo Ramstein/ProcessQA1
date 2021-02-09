@@ -8,7 +8,7 @@ package net.gotev.speech;
 public interface TextToSpeechCallback {
     void onStart();
 
-    boolean onCompleted();
+    void onCompleted();
 
     void onError();
 }

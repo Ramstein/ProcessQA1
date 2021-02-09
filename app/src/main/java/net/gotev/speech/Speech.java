@@ -246,7 +246,7 @@ public class Speech {
      *             (2.0 is twice the normal speech rate).
      * @return speech instance
      */
-    public Speech setTextToSpeechRate(final float rate) {
+    public Speech setTextToSpeechRate(final long rate) {
         textToSpeechEngine.setSpeechRate(rate);
         return this;
     }

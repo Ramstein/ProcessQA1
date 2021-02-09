@@ -72,6 +72,7 @@ import static java.lang.System.gc;
 import static net.gotev.speechdemo.Utils.LOG_TAG;
 import static net.gotev.speechdemo.Utils.SpeakPromptly;
 import static net.gotev.speechdemo.Utils.getSpeechInput;
+import static net.gotev.speechdemo.Utils.isBluetoothConnected;
 import static net.gotev.speechdemo.Utils.isBluetoothHeadsetConnected;
 
 public class MainActivity extends AppCompatActivity implements SpeechDelegate {
@@ -79,7 +80,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     private static final String GET_URL = "https://0yh5imhg3m.execute-api.ap-south-1.amazonaws.com/prod";
     private static final String POST_URL = "https://89t84kai7b.execute-api.ap-south-1.amazonaws.com/prod";
     private static final boolean API_POST = false;
-    private static final float SPEECHRATE = (float) 0.7;  // SpeechRate 0.0 < x < 2.0
     private static final long[] TIMER_MILLIs = {
             30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
             30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000,
@@ -160,7 +160,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
         if (Speech.getInstance().isListening()) {
             Speech.getInstance().stopListening();
         } else {
-            if (Utils.requestAudioPermission() & Utils.isBluetoothConnected) {
+            if (Utils.requestAudioPermission()) {
                 onRecordAudioPermissionGranted();
             }
         }
@@ -211,60 +211,64 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
                 .show();
     }
 
+    @SuppressLint("SetTextI18n")
     public static synchronized void startTimer(long ms) {
-        timePickerFragment.timerRunning = true;
-        timePickerFragment.countDownTimer = new CountDownTimer(ms, 1) {
+        if (Utils.isBluetoothConnected) {
+            timePickerFragment.timerRunning = true;
+            timePickerFragment.countDownTimer = new CountDownTimer(ms, 1) {
 
-            @Override
-            public void onTick(long millisUntilFinished) {
-                timePickerFragment.updateCountDownText(millisUntilFinished);
-            }
+                @Override
+                public void onTick(long millisUntilFinished) {
+                    timePickerFragment.updateCountDownText(millisUntilFinished);
+                }
 
-            @RequiresApi(api = Build.VERSION_CODES.O)
-            @SuppressLint("SetTextI18n")
-            @Override
-            public void onFinish() {
-                timePickerFragment.timerRunning = false;
-                if (n_que_answered <= n_que) {
-                    String temp_txt = n_que_layout.getText().toString();
-                    if (!temp_txt.equals("") & temp_txt.matches("[0-9]+")) {
-                        int n = Integer.parseInt(temp_txt);
-                        if (n > 1 & n < 25) {
-                            n_que = n;
+                @RequiresApi(api = Build.VERSION_CODES.O)
+                @SuppressLint("SetTextI18n")
+                @Override
+                public void onFinish() {
+                    timePickerFragment.timerRunning = false;
+                    if (n_que_answered <= n_que) {
+                        String temp_txt = n_que_layout.getText().toString();
+                        if (!temp_txt.equals("") & temp_txt.matches("[0-9]+")) {
+                            int n = Integer.parseInt(temp_txt);
+                            if (n > 1 & n < 25) {
+                                n_que = n;
+                            } else {
+                                textView.setText("Going with 20 questions.");
+                            }
                         } else {
                             textView.setText("Going with 20 questions.");
                         }
-                    } else {
-                        textView.setText("Going with 20 questions.");
-                    }
-                    if (TimerWithGoogleWindow) {
-                        SpeechToText();  // launches speech to text with a google interface window
-                        processQuestionToAnswer();
-                    } else {
-                        onSpeechToTextQuestion();
-                    }
-                    timePickerFragment.nextExecution();
-                } else { // all of the question answered from lambda, start speaking them
-                    Speech.getInstance().say("Answering the questions now", new TextToSpeechCallback() {
-                        @Override
-                        public void onStart() {
+                        if (TimerWithGoogleWindow) {
+                            SpeechToText();  // launches speech to text with a google interface window
+                            processQuestionToAnswer();
+                        } else {
+                            onSpeechToTextQuestion();
                         }
+                        timePickerFragment.nextExecution();
+                    } else { // all of the question answered from lambda, start speaking them
+                        Speech.getInstance().say("Answering the questions now", new TextToSpeechCallback() {
+                            @Override
+                            public void onStart() {
+                            }
 
-                        @Override
-                        public boolean onCompleted() {
-                            startAnsweringTheQuestions();
-                            return false;
-                        }
+                            @Override
+                            public void onCompleted() {
+                                startAnsweringTheQuestions();
+                            }
 
-                        @Override
-                        public void onError() {
-                        }
-                    });
+                            @Override
+                            public void onError() {
+                            }
+                        });
+                    }
+
                 }
-
-            }
-        }.start();
-        timePickerFragment.timerRunning = true;
+            }.start();
+            timePickerFragment.timerRunning = true;
+        } else {
+            textView.setText("isBluetoothConnected: " + isBluetoothConnected);
+        }
     }
 
     private static void onSpeechToTextQuestion() {
@@ -308,14 +312,12 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             String[] que_ans = preferencesHandler.getQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
             Log.e("startAnswering", Arrays.toString(que_ans));
             if (!que_ans[0].equals("") & !que_ans[1].equals("")) {
-                if (SpeakPromptly(que_ans[0])) {
-                    Utils.sleep(10);
-                    if (SpeakPromptly("Answering now")) {
-                        Utils.sleep(1);
-                        SpeakAnswer(que_ans[1]);
-                        preferencesHandler.removeQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
-                    }
-                }
+                SpeakPromptly("Question " + (i + 1) + " " + que_ans[0]);
+                Utils.sleep(10);
+                SpeakPromptly("Answering now");
+                Utils.sleep(1);
+                SpeakAnswer(que_ans[1]);
+                preferencesHandler.removeQueAnsFromPreferences("question" + (i + 1), "answer" + (i + 1));
             } else {
                 SpeakPromptly("Negative " + (i + 1));
             }
@@ -346,6 +348,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             SpeakPromptly((n_que_answered + 1) + " negative.");
             Utils.sleep(1);
             textView.setText(("answer Request failed: " + error.getMessage()));
+            // if answer request has failed start the new StartTimer now
         });
         queue.add(stringRequest);
     }
@@ -361,7 +364,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-
 //            Log.e("sendPostRequest", "Volley Request succeed: " + response);
 //            response = response.replace("\n", "");
 //            response = response.replace("\\", "");
@@ -397,12 +399,10 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 //                headers.put("Content-Type", "application/json; charset=utf-8");
 //                return headers;
 //            }
-//
 //            @Override
 //            public String getBodyContentType() {
 //                return "application/json; charset=utf-8";
 //            }
-//
 //            @Override
 //            public byte[] getBody() {
 //                return url_params == null ? null : url_params.toString().getBytes(StandardCharsets.UTF_8);
@@ -418,7 +418,6 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             }
 
         };
-        // Add the reliability on the connection.
 //        stringRequest.setRetryPolicy(new DefaultRetryPolicy(20000, 2, 1.0f));
         queue.add(stringRequest);
     }
@@ -452,16 +451,14 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
             if (idx_space % 5 == 0 || idx_space == s_arr.length) {
                 for (int i = 0; i < 3; ) {
                     if (!Speech.getInstance().isSpeaking() & Utils.isBluetoothConnected) {
-                        Speech.getInstance().setTextToSpeechRate(SPEECHRATE).say(words, new TextToSpeechCallback() {
+                        Speech.getInstance().setTextToSpeechRate(Utils.SPEECHRATE).say(words, new TextToSpeechCallback() {
                             @Override
                             public void onStart() {
                             }
 
                             @Override
-                            public boolean onCompleted() {
+                            public void onCompleted() {
                                 Utils.sleep(1);
-
-                                return false;
                             }
 
                             @Override
@@ -494,6 +491,7 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
     }
 
 
+    @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -515,8 +513,12 @@ public class MainActivity extends AppCompatActivity implements SpeechDelegate {
 
         mic_btn = findViewById(R.id.mic_btn);
         mic_btn.setOnClickListener(view -> {
-            Utils.test = true;
-            Utils.getSpeechInput();
+            if (isBluetoothConnected) {
+                Utils.test = true;
+                onSpeechToTextQuestion();
+            } else {
+                textView.setText("isBluetoothConnected: " + isBluetoothConnected);
+            }
         });
 
         Button speak = findViewById(R.id.speak);

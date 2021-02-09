@@ -35,9 +35,9 @@ public class Utils extends AppCompatActivity {
     public static final int RECORD_AUDIO_PERMISSIONS_REQUEST = 1;
     public static final String LOG_TAG = MainActivity.class.getSimpleName();
     public static final Integer RECOGNIZERINTENTREQUESTCODE = 10;
+    public static final long SPEECHRATE = (long) 0.7;  // SpeechRate 0.0 < x < 2.0
     public static List<String> SpeechRecognizerInput = new ArrayList<>();
     public static boolean isBluetoothConnected = false;
-
     public static boolean test;
     @SuppressLint("StaticFieldLeak")
     public static Context context;
@@ -65,28 +65,28 @@ public class Utils extends AppCompatActivity {
     }
 
 
-    public static synchronized boolean SpeakPromptly(String text) {
-        while (true) {
-            if (!Speech.getInstance().isSpeaking() & isBluetoothConnected) {
-                Speech instance = Speech.getInstance();
-                instance.setTextToSpeechRate((float) 0.8);
-                instance.say(text, new TextToSpeechCallback() {
+    public static synchronized void SpeakPromptly(String text) {
+        if (isBluetoothConnected) {
+            if (!Speech.getInstance().isSpeaking()) {
+                Speech.getInstance().setTextToSpeechRate(SPEECHRATE).say(text, new TextToSpeechCallback() {
                     @Override
                     public void onStart() {
                     }
 
                     @Override
-                    public boolean onCompleted() {
-                        return true;
+                    public void onCompleted() {
                     }
 
                     @Override
                     public void onError() {
                     }
                 });
-            } else {
                 Utils.sleep(1);
+            } else {
+                Log.e("SpeakPromptly", "!Speech.getInstance().isSpeaking(): " + !Speech.getInstance().isSpeaking());
             }
+        } else {
+            Log.e("SpeakPromptly", "isBluetoothConnected: " + isBluetoothConnected);
         }
     }
 
